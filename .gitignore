@@ -240,3 +240,8 @@ ModelManifest.xml
 
 # FAKE - F# Make
 .fake/
+/faces/media
+*.png
+/faces/__pycache__
+/faces/web.config
+/faces/web.debug.config

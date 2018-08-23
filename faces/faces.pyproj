@@ -7,8 +7,7 @@
     <ProjectGuid>cff30167-1070-4278-9a24-5f1e2a53b1dd</ProjectGuid>
     <ProjectHome>.</ProjectHome>
     <ProjectTypeGuids>{1b580a1a-fdb3-4b32-83e1-6407eb2722e6};{349c5851-65df-11da-9384-00065b846f21};{888888a0-9f3d-457c-b088-3a5042f75d52}</ProjectTypeGuids>
-    <StartupFile>
-    </StartupFile>
+    <StartupFile>faces.py</StartupFile>
     <SearchPath>
     </SearchPath>
     <WorkingDirectory>.</WorkingDirectory>
@@ -19,6 +18,8 @@
     <RootNamespace>faces</RootNamespace>
     <InterpreterId>{42ee62d3-f648-466b-887a-6ccca2b7cf51}</InterpreterId>
     <InterpreterVersion>3.5</InterpreterVersion>
+    <IsWindowsApplication>False</IsWindowsApplication>
+    <WebBrowserPort>3640</WebBrowserPort>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)' == 'Debug' ">
     <DebugSymbols>true</DebugSymbols>
@@ -45,10 +46,20 @@
     <Compile Include="faces.py">
       <SubType>Code</SubType>
     </Compile>
+    <Compile Include="settings.py">
+      <SubType>Code</SubType>
+    </Compile>
   </ItemGroup>
   <ItemGroup>
     <Content Include="app.conf" />
-    <Content Include="index.html" />
+    <Content Include="static\content\tree_example.png" />
+    <Content Include="static\scripts\invites.js" />
+    <Content Include="templates\footer.html" />
+    <Content Include="templates\header.html" />
+    <Content Include="templates\mixer.html" />
+    <Content Include="templates\chooser.html" />
+    <Content Include="templates\picture.html" />
+    <Content Include="templates\index.html" />
     <Content Include="static\content\bootstrap.css" />
     <Content Include="static\content\bootstrap.min.css" />
     <Content Include="static\content\site.css" />
@@ -67,6 +78,8 @@
     <Content Include="static\scripts\jquery.validate.unobtrusive.min.js" />
   </ItemGroup>
   <ItemGroup>
+    <Folder Include="media\" />
+    <Folder Include="templates\" />
     <Folder Include="static\" />
     <Folder Include="static\content\" />
     <Folder Include="static\scripts\" />
