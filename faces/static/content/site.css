@@ -752,6 +752,7 @@ table.func-view th:hover {
 table.func-view th.selected:hover {
   background-color: orangered;
 }
+
 table.func-view th .func-title {
   color: lightgray;
 }
@@ -962,4 +963,13 @@ table.compact-table td:hover {
     color: darkred;
     font-family: monospace;
     font-size: smaller;
+}
+
+/* Keizerportretten */
+table tr.selected {
+  background-color: yellow;
+}
+table tr.selected:hover {
+  background-color: darkgreen;
+  color: orange;
 }

@@ -132,6 +132,25 @@ var ru = (function ($, ru) {
           }
         });
 
+      },
+
+      // Select the emperor with the indicated id
+      set_keizer: function (el, idx) {
+        var elRow = null,
+            elTable = null;
+
+        // Get the row and the table
+        if (el !== undefined) {
+          elRow = $(el).closest("tr");
+          elTable = $(el).closest("tbody");
+          // Change the style of this one row
+          $(elTable).find("tr").removeClass("selected");
+          $(elRow).addClass("selected");
+          // Make sure the next button is available
+          $("#keizerkeuze").removeClass("hidden");
+          $("#keizerkeuze").attr("href", "/choose?id=" + idx);
+        }
+        
       }
 
     }

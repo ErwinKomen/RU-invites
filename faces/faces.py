@@ -3,7 +3,7 @@ import io, os
 import cv2
 import json
 import base64
-from settings import CONFIGURATION, SERVE_PORT
+from settings import CONFIGURATION, SERVE_PORT, KEIZER_BASE, KEIZERS
 
 def get_template(sLoc, include_init=False):
     """Get the template from the location and return its contents"""
@@ -52,6 +52,48 @@ def take_picture():
 
 def retrieve_picture(img_counter):
     img_name = "static/opencv_frame_{}.png".format(img_counter)
+    return img_name
+
+def keizer_list():
+    """Create a html list of emperors"""
+
+    lstE = []
+    lKeizers = KEIZERS
+    volgnummer = 1
+    naam_vorige = ""
+    anchor_code = " class=\"btn btn-default btn-xs\" title=\"@t@\" onclick=\"ru.invites.set_keizer(this, @k@)\""
+    for item in lKeizers:
+        doelgroep = item['doel']
+        geslacht = "man" if item['geslacht'] == "m" else "vrouw"
+        naam = item['naam']
+        if naam == naam_vorige:
+            volgnummer += 1
+        else:
+            volgnummer = 1
+            naam_vorige = naam
+        anchor_tekst = anchor_code.replace("@t@", naam).replace("@k@", str(item['id']))
+        sItem = "<tr><td>{}</td><td>{}</td><td>{}</td><td align='center'><a {}>{}</a></td></tr>".format(
+            doelgroep, geslacht, naam, anchor_tekst, volgnummer)
+        lstE.append(sItem)
+    # Return the combination
+    return "\n".join(lstE)
+
+def keizer_image(idx):
+    """Return the image file name for this keizer"""
+    img_name = ""
+    lKeizers = KEIZERS
+    # Get the object
+    oKeizer = lKeizers[int(idx) - 1]
+    # Construct the file name
+    if oKeizer['doel'] == "kind":
+        doel = "Kinderen/"
+        geslacht = "Jongens/" if oKeizer['geslacht'] == "m" else "Meisjes"
+    else:
+        doel = ""
+        geslacht = "Mannen/" if oKeizer['geslacht'] == "m" else "Vrouwen"
+    naam = oKeizer['naam']
+    bestand = oKeizer['file']
+    img_name = "{}/{}{}{}/{}".format(KEIZER_BASE, doel, geslacht, naam, bestand)
     return img_name
 
 
@@ -104,13 +146,22 @@ class Root(object):
         # Retrieve the currently existing image
         img_name = retrieve_picture(self.counter)
         # Load the 'picture' template - this shows the resulting picture
-        sHtml = get_template(self.template_pictu).replace("@img_name@", img_name)        
+        sHtml = get_template(self.template_pictu).replace("@img_name@", img_name)     
+        # Put in the list of emperors
+        sHtml = sHtml.replace("@keizer_list@", keizer_list())   
         return sHtml
 
     @cherrypy.expose
-    def choose(self):
+    def choose(self, id=0):
+
+        # Retrieve the currently existing image
+        img_self = retrieve_picture(self.counter)
+        # Find out which file name this is
+        img_keizer = keizer_image(id)
         # Load the 'picture' template
         sHtml = get_template(self.template_choos)
+        sHtml = sHtml.replace("@img_keizer@", img_keizer)
+        sHtml = sHtml.replace("@img_self@", img_self)
         return sHtml
 
     @cherrypy.expose
