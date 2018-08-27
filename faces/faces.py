@@ -1,9 +1,13 @@
 import cherrypy
-import io, os
+import io, os, sys
 import cv2
 import json
 import base64
+import facemorpher      # This one is only available on Ponyland
+
 from settings import CONFIGURATION, SERVE_PORT, KEIZER_BASE, KEIZERS
+
+OUT_FRAMES = "static/tmp"
 
 def get_template(sLoc, include_init=False):
     """Get the template from the location and return its contents"""
@@ -32,6 +36,20 @@ def get_template_unit(sLoc):
     # Return the data
     return sData
 
+def get_error_message():
+    arInfo = sys.exc_info()
+    if len(arInfo) == 3:
+        sMsg = str(arInfo[1])
+        if arInfo[2] != None:
+            sMsg += " at line " + str(arInfo[2].tb_lineno)
+        return sMsg
+    else:
+        return ""
+
+def DoError():
+    sMsg = get_error_message()
+    print("Error: " + sMsg + "\n", file=sys.stderr)
+
 def take_picture():
     """This takes a picture and then saves it (where??)"""
 
@@ -53,6 +71,13 @@ def take_picture():
 def retrieve_picture(img_counter):
     img_name = "static/opencv_frame_{}.png".format(img_counter)
     return img_name
+
+def get_exif_info(path_name):
+    f = open(path_name, "rb")
+    tags = exifread.process_file(f)
+    for tag in tags.keys():
+        if tag.lower().find("orient") >= 0:
+            print("Key: [{}] = [{}]".format(tag, tags[tag]))
 
 def keizer_list():
     """Create a html list of emperors"""
@@ -103,7 +128,10 @@ class Root(object):
     template_pictu = "templates/picture.html"
     template_choos = "templates/chooser.html"
     template_mixer = "templates/mixer.html"
+    out_frames = OUT_FRAMES
+    imgpaths = []
     counter = 1
+    
 
     @cherrypy.expose
     def index(self):
@@ -158,6 +186,10 @@ class Root(object):
         img_self = retrieve_picture(self.counter)
         # Find out which file name this is
         img_keizer = keizer_image(id)
+        # Put the images in imgpaths
+        self.imgpaths.clear()
+        self.imgpaths.append(img_self)
+        self.imgpaths.append(img_keizer)
         # Load the 'picture' template
         sHtml = get_template(self.template_choos)
         sHtml = sHtml.replace("@img_keizer@", img_keizer)
@@ -166,8 +198,17 @@ class Root(object):
 
     @cherrypy.expose
     def mix(self):
-        # Load the 'picture' template
-        sHtml = get_template(self.template_mixer)
+        sHtml = "foutje"
+        try:
+            for item in self.imgpaths:
+                print("item = [{}]".format(item))
+            # Perform the mixing
+            facemorpher.morpher(self.imgpaths, out_frames=self.out_frames)
+            # Load the 'picture' template
+            sHtml = get_template(self.template_mixer)
+        except:
+            sHtml = get_error_message()
+            DoError()
         return sHtml
 
 

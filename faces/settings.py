@@ -12,9 +12,9 @@ CONFIGURATION = {
              },
         }
 
-SERVE_PORT = 3640
+SERVE_PORT = 6001
 
-KEIZER_BASE = "/static/img"
+KEIZER_BASE = "static/img"
 
 KEIZERS = [
     {"id": 1, "doel": "kind", "geslacht": "m", "naam": "Caligula",       "file": "13192017765_a078c7b2f5_o.jpg"},
