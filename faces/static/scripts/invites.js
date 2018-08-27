@@ -13,6 +13,7 @@ var ru = (function ($, ru) {
         video = document.querySelector('#web_video'),
         canvas = document.querySelector('#web_canvas'),
         buttoncontent = document.querySelector('#buttoncontent'),
+        slider = document.getElementById("slide_range"),
         width = 400,
         height = 0;
 
@@ -41,51 +42,85 @@ var ru = (function ($, ru) {
     // Methods that are exported for outside functions by [ru.invites]
     return {
       // Initialise the events 
-      init_events: function () {
-        // Check the variables
-        if (video == null) video = document.querySelector('#web_video');
-        if (canvas == null) canvas = document.querySelector('#web_canvas');
-        if (buttoncontent == null) buttoncontent = document.querySelector('#buttoncontent');
-        // if (startbutton == null) startbutton = document.querySelector('#vastleggen');
+      init_events: function (idx) {
+
+        // Set default index
+        if (idx == undefined) idx = 1;
+
+        // General initialisations
         width = 400,
         height = 0;
 
+        // Check the variables
+        switch (idx) {
+          case 1:
+            if (video == null) video = document.querySelector('#web_video');
+            if (canvas == null) canvas = document.querySelector('#web_canvas');
+            if (buttoncontent == null) buttoncontent = document.querySelector('#buttoncontent');
+            // Some necessary methods
+            navigator.getMedia = (navigator.getUserMedia ||
+              navigator.webkitGetUserMedia ||
+              navigator.mozGetUserMedia ||
+              navigator.msGetUserMedia);
 
-        // Some necessary methods
-        navigator.getMedia = (navigator.getUserMedia ||
-          navigator.webkitGetUserMedia ||
-          navigator.mozGetUserMedia ||
-          navigator.msGetUserMedia);
+            navigator.getMedia(
+              { video: true, audio: false },
+              function (stream) {
+                if (navigator.mozGetUserMedia) {
+                  video.mozSrcObject = stream;
+                } else {
+                  var vendorURL = window.URL || window.webkitURL;
+                  video.src = vendorURL.createObjectURL(stream);
+                }
+                video.play();
+              },
+              function (err) {
+                console.log("An error occured! " + err);
+              }
+            );
 
-        navigator.getMedia(
-          { video: true, audio: false },
-          function (stream) {
-            if (navigator.mozGetUserMedia) {
-              video.mozSrcObject = stream;
-            } else {
-              var vendorURL = window.URL || window.webkitURL;
-              video.src = vendorURL.createObjectURL(stream);
+            video.addEventListener('canplay', function (ev) {
+              if (!streaming) {
+                height = video.videoHeight / (video.videoWidth / width);
+                video.setAttribute('width', width);
+                video.setAttribute('height', height);
+                canvas.setAttribute('width', width);
+                canvas.setAttribute('height', height);
+                streaming = true;
+              }
+            }, false);
+            break;
+          case 2:
+            if (slider == null) slider = document.querySelector("#slide_range");
+            // add listener for the slider
+            if (slider !== null) {
+              slider.oninput = function () {
+                var picnum = 0;
+
+                // Get the value of the slider
+                picnum = this.value;
+                $("#testpic").html("picture number = " + picnum);
+              }
             }
-            video.play();
-          },
-          function (err) {
-            console.log("An error occured! " + err);
-          }
-        );
-
-        video.addEventListener('canplay', function (ev) {
-          if (!streaming) {
-            height = video.videoHeight / (video.videoWidth / width);
-            video.setAttribute('width', width);
-            video.setAttribute('height', height);
-            canvas.setAttribute('width', width);
-            canvas.setAttribute('height', height);
-            streaming = true;
-          }
-        }, false);
+            break;
+        }
 
         // Indicate that we are initialized
         bInitialized = true;
+      },
+
+      // show the picture indicated by the slider number
+      update_mixer : function(el) {
+        var picnum = 0,
+            sValue = "";
+
+        // Get the picture number (string to integer)
+        sValue = $(el).attr("value");
+        if (sValue !== undefined && sValue !== "") {
+          picnum = parseInt(sValue, 10);
+          // Construct the picture name
+        }
+
       },
 
       // Handle taking a picture and moving to the next page

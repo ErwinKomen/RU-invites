@@ -9,12 +9,14 @@ from settings import CONFIGURATION, SERVE_PORT, KEIZER_BASE, KEIZERS
 
 OUT_FRAMES = "static/tmp"
 
-def get_template(sLoc, include_init=False):
+def get_template(sLoc, include_init=0):
     """Get the template from the location and return its contents"""
 
     sFooter = get_template_unit("templates/footer.html")
-    if include_init:
-        sFooter = sFooter.replace("@init@", "ru.invites.init_events();")
+    if include_init==1:
+        sFooter = sFooter.replace("@init@", "ru.invites.init_events(1);")
+    elif include_init==2:
+        sFooter = sFooter.replace("@init@", "ru.invites.init_events(2);")
     else:
         sFooter = sFooter.replace("@init@", "")
     sData = get_template_unit("templates/header.html") + \
@@ -128,7 +130,7 @@ class Root(object):
     template_pictu = "templates/picture.html"
     template_choos = "templates/chooser.html"
     template_mixer = "templates/mixer.html"
-    out_frames = OUT_FRAMES
+    out_frames = OUT_FRAMES                     # Directory where the output images are stored
     imgpaths = []
     counter = 1
     
@@ -140,7 +142,7 @@ class Root(object):
         # Increment the counter
         self.counter += 1
         # Load the 'root' template
-        sHtml = get_template(self.template_index, True).replace("@img_count@", str(self.counter))
+        sHtml = get_template(self.template_index, 1).replace("@img_count@", str(self.counter))
         return sHtml
 
     @cherrypy.expose
@@ -205,7 +207,7 @@ class Root(object):
             # Perform the mixing
             facemorpher.morpher(self.imgpaths, out_frames=self.out_frames)
             # Load the 'picture' template
-            sHtml = get_template(self.template_mixer)
+            sHtml = get_template(self.template_mixer, 2)
         except:
             sHtml = get_error_message()
             DoError()
