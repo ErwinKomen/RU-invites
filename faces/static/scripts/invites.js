@@ -35,6 +35,14 @@ var ru = (function ($, ru) {
 
         // Return the data
         return data;
+      },
+
+      zeroFill: function( number, width ) {
+        width -= number.toString().length;
+        if ( width > 0 ) {
+          return new Array( width + (/\./.test( number ) ? 2 : 1) ).join( '0' ) + number;
+        }
+        return number + ""; // always return a string
       }
 
     };
@@ -112,13 +120,26 @@ var ru = (function ($, ru) {
       // show the picture indicated by the slider number
       update_mixer : function(el) {
         var picnum = 0,
+            elTest = null,
+            sPicName = "",
+            sNumber = "",   // Zero-padded number
             sValue = "";
 
         // Get the picture number (string to integer)
-        sValue = $(el).attr("value");
+        sValue = $(el)[0].value;
         if (sValue !== undefined && sValue !== "") {
           picnum = parseInt(sValue, 10);
-          // Construct the picture name
+          sNumber = private_methods.zeroFill(picnum, 3);
+
+          // Hide all pictures
+          $(".result-pic").addClass("hidden");
+          // SHow the one picture we need
+          $("#pic" + sNumber).removeClass("hidden");
+
+          // Testing: show the picture name
+          sPicName = "static/tmp/frame" + sNumber + ".png";
+          elTest = $("#testpic");
+          $(elTest).html("showing " + sPicName);
         }
 
       },
