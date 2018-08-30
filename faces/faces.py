@@ -3,7 +3,7 @@ import io, os, sys
 import cv2
 import json
 import base64
-import facemorpher      # This one is only available on Ponyland
+# import facemorpher      # This one is only available on Ponyland
 
 from settings import CONFIGURATION, SERVE_PORT, KEIZER_BASE, KEIZERS
 
@@ -28,7 +28,7 @@ def get_template_unit(sLoc):
     """Get the template from the location and return its contents"""
 
     sRoot = os.path.abspath(os.getcwd())
-    sPath = sRoot + "/" + sLoc
+    sPath = os.path.abspath(os.path.join(sRoot, sLoc))
     sData = "Template not found: {}".format(sPath)
     if os.path.exists(sPath):
         with io.open(sPath, "r", encoding="utf8") as f:
@@ -126,24 +126,60 @@ def keizer_image(idx):
 
 # @cherrypy.expose
 class Root(object):
-    template_index = "templates/index.html"
+    # ---------- OLD =-----------
     template_pictu = "templates/picture.html"
     template_choos = "templates/chooser.html"
     template_mixer = "templates/mixer.html"
+    # ---------------------------
+
+    template_index = "templates/index.html"
+    template_post_start = "templates/post_start.html"
+    template_post_pictu = "templates/post_picture.html"
+    template_post_choos = "templates/post_chooser.html"
+    template_post_mixer = "templates/post_mixer.html"
     out_frames = OUT_FRAMES                     # Directory where the output images are stored
     imgpaths = []
     counter = 1
-    
+    root_path = os.path.abspath(os.getcwd())
+    button_list = [
+        { 'stage': 'start',   'next': 'picture','lead': 'Neem uw foto en we gaan het zien...',
+          'text': "Maak mijn portret", "title": "Stap 1: neem je eigen foto (met de webcam)" },
+        { 'stage': 'picture', 'next': 'choose', 'lead': 'Uw foto is er, nu nog een keizer kiezen...',
+          'text': "Neem deze keizer",  "title": "Stap 2: Neem de geselecteerde keizer" },
+        { 'stage': 'choose',  'next': 'mix',    'lead': 'Houd u vast, de mixer gaat werken...',
+          'text': "Combineer",         "title": "Stap 3: combineer" },
+        { 'stage': 'mix',     'next': 'start',  'lead': 'Hier is het resultaat...',
+          'text': "Maak mijn portret", "title": "Begin helemaal overnieuw" }
+    ]
 
     @cherrypy.expose
     def index(self):
         """Show the opening page and allow people to start taking a picture"""
 
         # Increment the counter
-        self.counter += 1
+        # self.counter += 1
         # Load the 'root' template
         sHtml = get_template(self.template_index, 1).replace("@img_count@", str(self.counter))
+        sHtml = sHtml.replace("@post_start@", get_template_unit(self.template_post_start))
         return sHtml
+
+    @cherrypy.expose
+    def post_start(self):
+        """Show the opening page and allow people to start taking a picture"""
+
+        # Default reply
+        oBack = {'status': 'error', 'html': 'kon niet lezen'}
+
+        # Increment the counter
+        self.counter += 1
+        # Load the 'root' template
+        sHtml = get_template_unit(self.template_post_start).replace("@img_count@", str(self.counter))
+        # sHtml = sHtml.replace("@post_start@", get_template_unit(self.template_post_start))
+
+        # Respond appropriately
+        oBack['status'] = "ok"
+        oBack['html'] = sHtml
+        return json.dumps(oBack)
 
     @cherrypy.expose
     def post_img(self, image_content=None, counter='0'):
@@ -161,13 +197,94 @@ class Root(object):
             data = base64.b64decode(sData)
             # Determine where to put the image
             img_name = retrieve_picture(counter) 
-            with io.open(img_name, "wb") as fout:
+            # Calculate the local path
+            sPath = os.path.abspath(os.path.join(self.root_path, img_name))
+            # Remove the old image with this name (if it exists)
+            if os.path.exists(sPath):
+                os.remove(sPath);
+            # Write the new image
+            with io.open(sPath, "wb") as fout:
                 fout.write(data)
 
         # Respond appropriately
         oBack['status'] = "ok"
         oBack['html'] = "beeld gelezen"
         return json.dumps(oBack)
+
+    @cherrypy.expose
+    def post_buttonlist(self):
+        return json.dumps(self.button_list)
+
+    @cherrypy.expose
+    def post_imgcount(self):
+        return str(self.counter)
+
+    @cherrypy.expose
+    def post_picture(self):
+        """While showing the culprit's image, let him choose an emperor"""
+
+        # Default reply
+        oBack = {'status': 'error', 'html': 'kon niet lezen'}
+
+        # Retrieve the currently existing image
+        img_name = retrieve_picture(self.counter)
+        # Load the 'picture' template - this shows the resulting picture
+        sHtml = get_template_unit(self.template_post_pictu).replace("@img_name@", img_name)     
+        # Put in the list of emperors
+        sHtml = sHtml.replace("@keizer_list@", keizer_list())   
+
+        # Respond appropriately
+        oBack['status'] = "ok"
+        oBack['html'] = sHtml
+        return json.dumps(oBack)
+
+    @cherrypy.expose
+    def post_choose(self, id=0):
+
+        # Default reply
+        oBack = {'status': 'error', 'html': 'kon niet lezen'}
+
+        # Retrieve the currently existing image
+        img_self = retrieve_picture(self.counter)
+        # Find out which file name this is
+        img_keizer = keizer_image(id)
+        # Put the images in imgpaths
+        self.imgpaths.clear()
+        self.imgpaths.append(img_self)
+        self.imgpaths.append(img_keizer)
+        # Load the 'picture' template
+        sHtml = get_template_unit(self.template_post_choos)
+        sHtml = sHtml.replace("@img_keizer@", img_keizer)
+        sHtml = sHtml.replace("@img_self@", img_self)
+
+        # Respond appropriately
+        oBack['status'] = "ok"
+        oBack['html'] = sHtml
+        return json.dumps(oBack)
+
+    @cherrypy.expose
+    def post_mix(self):
+
+        # Default reply
+        sHtml = 'kon niet lezen'
+        oBack = {'status': 'error', 'html': sHtml}
+
+        try:
+            for item in self.imgpaths:
+                print("item = [{}]".format(item))
+            # Start up the facemorpher process
+            facemorpher.morpher(self.imgpaths, out_frames=self.out_frames)
+            # Load the 'picture' template
+            sHtml = get_template_unit(self.template_post_mixer)
+            oBack['status'] = "ok"
+        except:
+            sHtml = get_error_message()
+            DoError()
+
+        # Respond appropriately
+        oBack['html'] = sHtml
+        return json.dumps(oBack)
+
 
     @cherrypy.expose
     def picture(self):

@@ -12,7 +12,7 @@ CONFIGURATION = {
              },
         }
 
-SERVE_PORT = 6001
+SERVE_PORT = 6001   # 443    # 6001
 
 KEIZER_BASE = "static/img"
 

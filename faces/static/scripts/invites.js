@@ -10,20 +10,35 @@ var ru = (function ($, ru) {
   ru.invites = (function ($, config) {
     var bInitialized = false,
         streaming = false,
+        loc_errDiv = "#error_messages",
+        loc_keizerkeuze = 0,
+        mediaOptions = { audio: false, video: true},
         video = document.querySelector('#web_video'),
         canvas = document.querySelector('#web_canvas'),
         buttoncontent = document.querySelector('#buttoncontent'),
         slider = document.getElementById("slide_range"),
+        butMain = document.querySelector("#main_button"),
+        spanLead = document.querySelector("#lead_text"),
         width = 400,
-        height = 0;
+        height = 0,
+        imgcount = 0,
+        button_list = null;
 
     var private_methods = {
 
       // Take a picture and return the data
       // See: https://stackoverflow.com/questions/41575083/how-to-take-an-image-from-the-webcam-in-html/41575483
       takepicture: function () {
-        video.style.display = "none";
         canvas.style.display = "block";
+
+        // Double check the width/height
+        if (video !== null) {
+          width = video.clientWidth;
+          height = video.videoHeight / (video.videoWidth / width);
+        }
+
+        // Temporarily switch off the width here
+        video.style.display = "none";
 
         // Make sure we set the canvas to hold the picture
         canvas.width = width;
@@ -35,6 +50,99 @@ var ru = (function ($, ru) {
 
         // Return the data
         return data;
+      },
+
+      showError(sFunction, ex) {
+        var sMsg = "Error in " + sFunction
+
+        // Check ex
+        if (ex !== undefined && ex !== null) {
+          sMsg = "Error in " + sFunction + ": " + ex.message;
+        } else {
+          // The 'function'  is the whole error message
+          sMsg = sFunction;
+        }
+
+        if (loc_errDiv !== undefined && loc_errDiv !== null) {
+          $(loc_errDiv).html("<p><code>"+sMsg+"</code></p>");
+        }
+      },
+
+      // Get the list of button definitions
+      get_buttons: function (sStage) {
+        var ajaxurl = "/post_buttonlist";
+
+        try {
+          if (button_list === null) {
+            $.post(ajaxurl, null, function (response) {
+              // Sanity check
+              if (response !== undefined) {
+                // Get the definitions
+                button_list = JSON.parse(response);
+                // If a stage is defined, go to it
+                if (sStage !== undefined && sStage !== "") {
+                  ru.invites.init_stage(sStage);
+                }
+              }
+            });
+          }
+        } catch (ex) {
+          private_methods.showError("get_buttons", ex);
+        }
+      },
+
+      // Get the image count number
+      get_imgcount: function() {
+        var ajaxurl = "/post_imgcount";
+
+        try {
+          if (butMain !== null) {
+            $.post(ajaxurl, null, function (response) {
+              // Sanity check
+              if (response !== undefined) {
+                // Get the definitions
+                imgcount = parseInt(response, 10);
+                console.log("get_imgcount: " + imgcount.toString());
+                // Set it on the correct place
+                $(butMain).attr("picnum", imgcount.toString());
+              }
+            });
+          }
+        } catch (ex) {
+          private_methods.showError("get_imgcount", ex);
+        }
+      },
+
+      // Trigger one particular stage and load the result
+      load_stage: function (ajaxurl, data, func_next) {
+        try {
+          $.post(ajaxurl, data, function (response) {
+            var oResponse = null;
+            // Sanity check
+            if (response !== undefined) {
+              oResponse = JSON.parse(response);
+              if (oResponse['status'] == "ok") {
+                if ('html' in oResponse) {
+                  // Load the response in the appropriate place
+                  $("#pane_container").html(oResponse['html']);
+                  // Perform the next function if defined
+                  if (func_next !== undefined) {
+                    func_next();
+                  }
+                } else {
+                  $(loc_errDiv).html("Response is okay, but [html] is missing");
+                }
+              } else if (oResponse['status'] === "error") {
+                $(loc_errDiv).html(oResponse['html']);
+              } else {
+                $(loc_errDiv).html("Could not interpret response " + response.status);
+              }
+            }
+          });
+
+        } catch (ex) {
+          private_methods.showError("load_stage", ex);
+        }
       },
 
       zeroFill: function( number, width ) {
@@ -56,7 +164,7 @@ var ru = (function ($, ru) {
         if (idx == undefined) idx = 1;
 
         // General initialisations
-        width = 400,
+        width = 400;
         height = 0;
 
         // Check the variables
@@ -65,29 +173,40 @@ var ru = (function ($, ru) {
             if (video == null) video = document.querySelector('#web_video');
             if (canvas == null) canvas = document.querySelector('#web_canvas');
             if (buttoncontent == null) buttoncontent = document.querySelector('#buttoncontent');
-            // Some necessary methods
-            navigator.getMedia = (navigator.getUserMedia ||
-              navigator.webkitGetUserMedia ||
-              navigator.mozGetUserMedia ||
-              navigator.msGetUserMedia);
+            if (butMain == null) butMain = document.querySelector("#main_button");
+            if (spanLead == null) spanLead = document.querySelector("#lead_text");
 
-            navigator.getMedia(
-              { video: true, audio: false },
+            if (!navigator.getUserMedia) {
+              navigator.getUserMedia = navigator.getUserMedia ||
+                navigator.webkitGetUserMedia ||
+                navigator.mozGetUserMedia ||
+                navigator.msGetUserMedia;
+            }
+
+            if (!navigator.getUserMedia) {
+              private_methods.showError("getUserMedia not supported in this browser", null);
+              return alert('getUserMedia not supported in this browser.');
+            }
+
+            navigator.getUserMedia(mediaOptions,
               function (stream) {
-                if (navigator.mozGetUserMedia) {
-                  video.mozSrcObject = stream;
-                } else {
-                  var vendorURL = window.URL || window.webkitURL;
-                  video.src = vendorURL.createObjectURL(stream);
-                }
-                video.play();
+                video = document.querySelector('#web_video');
+                video.src = window.URL.createObjectURL(stream);
               },
-              function (err) {
-                console.log("An error occured! " + err);
-              }
-            );
+              function (e) {
+                private_methods.showError("error2: ", e);
+                console.log(e);
+              });
 
-            video.addEventListener('canplay', function (ev) {
+            // Get current width and height
+            if (video !== null) {
+              width = video.clientWidth;
+              height = video.videoHeight / (video.videoWidth / width);
+            }
+
+            // Make sure the width and height is kept okay
+            $(video).off();
+            $(video).on("canplay", function (ev) {
               if (!streaming) {
                 height = video.videoHeight / (video.videoWidth / width);
                 video.setAttribute('width', width);
@@ -96,7 +215,73 @@ var ru = (function ($, ru) {
                 canvas.setAttribute('height', height);
                 streaming = true;
               }
-            }, false);
+            });
+
+
+
+            /*
+            // Some necessary methods
+            navigator.getMedia = (navigator.getUserMedia ||
+              navigator.webkitGetUserMedia ||
+              navigator.mozGetUserMedia ||
+              navigator.msGetUserMedia);
+
+            // Only continue if we have it
+            if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+              navigator.mediaDevices.getUserMedia(
+                // Specify what to show and hear
+                { video: true, audio: false })
+                // Specify what to do when conditions are met
+                .then(function (stream) {
+                  // video.srcObject = stream;
+                  if (navigator.mozGetUserMedia) {
+                    video.mozSrcObject = stream;
+                    video.srcObject = stream;
+                    video.src = window.URL.createObjectURL(stream);
+                  } else {
+                    var vendorURL = window.URL || window.webkitURL;
+                    video.src = vendorURL.createObjectURL(stream);
+                  }
+                  // Make sure the video starts playing
+                  video.play();
+                })
+                // Specify what to do when an exception occurs
+                .catch( function (err) {
+                  console.log("An error occured! " + err);
+                  private_methods.showError("getMedia", err);
+              });
+
+
+              //navigator.getMedia(
+              //  { video: true, audio: false },
+              //  function (stream) {
+              //    if (navigator.mozGetUserMedia) {
+              //      video.mozSrcObject = stream;
+              //    } else {
+              //      var vendorURL = window.URL || window.webkitURL;
+              //      video.src = vendorURL.createObjectURL(stream);
+              //    }
+              //    video.play();
+              //  },
+              //  function (err) {
+              //    console.log("An error occured! " + err);
+              //  }
+              //);
+            }
+
+            //video.addEventListener('canplay', function (ev) {
+            //  if (!streaming) {
+            //    height = video.videoHeight / (video.videoWidth / width);
+            //    video.setAttribute('width', width);
+            //    video.setAttribute('height', height);
+            //    canvas.setAttribute('width', width);
+            //    canvas.setAttribute('height', height);
+            //    streaming = true;
+            //  }
+            //}, false);
+
+            */
+
             break;
           case 2:
             if (slider == null) slider = document.querySelector("#slide_range");
@@ -115,6 +300,19 @@ var ru = (function ($, ru) {
 
         // Indicate that we are initialized
         bInitialized = true;
+
+        // Load the button definitions and load 'start'
+        // Also make sure the correct stage is initialized
+        private_methods.get_buttons("start");
+
+        //// Make sure the correct stage is initialized
+        //ru.invites.init_stage("start");
+
+      },
+
+      media_success : function(stream) {
+        var video = document.querySelector('#web_video');
+        video.src = window.URL.createObjectURL(stream);
       },
 
       // show the picture indicated by the slider number
@@ -144,50 +342,128 @@ var ru = (function ($, ru) {
 
       },
 
+      // Initialise the indicated stage
+      init_stage: function (sStage) {
+        var i = 1,
+            data = [],
+            oInfo = null;
+
+        try {
+          console.log("init_stage " + sStage + ": " + imgcount.toString());
+          // Find the indicated stage
+          for (i = 0; i < button_list.length - 1; i++) {
+            oInfo = button_list[i];
+            if (oInfo['stage'] === sStage) {
+              // We found the stage
+              // Set the text of the button
+              $(butMain).html(oInfo["text"]);
+              // Set the title of the button
+              $(butMain).attr("title", oInfo["title"]);
+              // Set the lead text
+              $(spanLead).html(oInfo["lead"]);
+
+              //$(butMain).addEventListener("onclick", function () { ru.invites.init_stage(oInfo["next"]); });
+              // Remove all previous listeners
+              $(butMain).off();
+              // Set the new event listener
+              $(butMain).on("click", function () { ru.invites.init_stage(oInfo["next"]); });
+              // Break free
+              break;
+            }
+          }
+
+          // Action depends on the stage
+          switch (sStage) {
+            case "start": // Opening screen
+              // Make sure initialization happens (again)
+              ru.invites.init_events(1);
+              // Make sure the buttons are visible
+              $(butMain).removeClass("hidden");
+              // Load the correct information
+              private_methods.load_stage("/post_start", data, function () {
+                // Make sure a new image count is fetched
+                private_methods.get_imgcount();
+              });
+              break;
+            case "picture":
+              // Snap the picture right now
+              ru.invites.handle_picture(imgcount, function () {
+                // Load the next page with this picture upon success
+                private_methods.load_stage("/post_picture", data);
+              });
+              break;
+            case "choose":
+              // Set the chosen emperor
+              data.push({ "name": "id", "value": loc_keizerkeuze});
+              // Load the correct page and then hide the next button
+              private_methods.load_stage("/post_choose", data, function () {
+                // Hide the 'next' button until the user has chosen an emperor
+                $(butMain).addClass("hidden");
+              });
+              break;
+            case "mix":
+              private_methods.load_stage("/post_mix", data);
+              break;
+          }
+
+        } catch (ex) {
+          private_methods.showError("init_stage", ex);
+        }
+      },
+
       // Handle taking a picture and moving to the next page
-      handle_picture: function (iCounter) {
+      handle_picture: function (iCounter, func_next) {
         var data = [],
             elMsg = null,
             img = null,
             counter = 1,            // The number for this image
             ajaxurl = "/post_img";  // Where to post the image to
 
-        // Check initialization
-        if (!bInitialized) {
-          ru.invites.init_events();
-        }
-
-        // Check the number
-        if (iCounter === undefined) { iCounter = '1';}
-
-        // Take a picture and save it
-        img = private_methods.takepicture();
-        data.push(
-          { 'name': 'image_content', 'value': img },
-          { 'name': 'counter', 'value': iCounter }
-        );
-
-        // Send the picture to the server
-        elMsg = "#storing";
-        $.post(ajaxurl, data, function (response) {
-          var oResponse = null;
-          // Sanity check
-          if (response !== undefined) {
-            oResponse = JSON.parse(response);
-            if (oResponse['status'] == "ok") {
-              if ('html' in oResponse) {
-                $(elMsg).html(oResponse['html']);
-              } else {
-                $(elMsg).html("Response is okay, but [html] is missing");
-              }
-              // Navigate to the correct place
-              window.location.href = "/picture";
-            } else {
-              $(elMsg).html("Could not interpret response " + response.status);
-            }
+        try {
+          // Check initialization
+          if (!bInitialized) {
+            ru.invites.init_events();
           }
-        });
+          // Check the number
+          if (iCounter === undefined) { iCounter = '1'; }
 
+          // Take a picture and save it
+          img = private_methods.takepicture();
+          data.push(
+            { 'name': 'image_content', 'value': img },
+            { 'name': 'counter', 'value': iCounter }
+          );
+
+          // Send the picture to the server
+          elMsg = "#storing";
+          $.post(ajaxurl, data, function (response) {
+            var oResponse = null;
+            // Sanity check
+            if (response !== undefined) {
+              oResponse = JSON.parse(response);
+              if (oResponse['status'] == "ok") {
+                if ('html' in oResponse) {
+                  if (func_next === undefined) {
+                    $(elMsg).html(oResponse['html']);
+                  } else {
+                    // Execute the next function
+                    func_next();
+                  }
+                } else {
+                  $(elMsg).html("Response is okay, but [html] is missing");
+                }
+                if (func_next === undefined) {
+                  // Navigate to the correct place
+                  window.location.href = "/picture";
+                }
+              } else {
+                $(elMsg).html("Could not interpret response " + response.status);
+              }
+            }
+          });
+        } catch (ex) {
+          private_methods.showError("handle_picture", ex);
+        }
       },
 
       // Select the emperor with the indicated id
@@ -195,16 +471,25 @@ var ru = (function ($, ru) {
         var elRow = null,
             elTable = null;
 
-        // Get the row and the table
-        if (el !== undefined) {
-          elRow = $(el).closest("tr");
-          elTable = $(el).closest("tbody");
-          // Change the style of this one row
-          $(elTable).find("tr").removeClass("selected");
-          $(elRow).addClass("selected");
-          // Make sure the next button is available
-          $("#keizerkeuze").removeClass("hidden");
-          $("#keizerkeuze").attr("href", "/choose?id=" + idx);
+        try {
+          // Get the row and the table
+          if (el !== undefined) {
+            elRow = $(el).closest("tr");
+            elTable = $(el).closest("tbody");
+            // Change the style of this one row
+            $(elTable).find("tr").removeClass("selected");
+            $(elRow).addClass("selected");
+
+            // Make sure the main button is available again
+            $(butMain).removeClass("hidden");
+            $(butMain).html("Neem keizer #" + idx);
+            loc_keizerkeuze = idx;
+
+            //$("#keizerkeuze").removeClass("hidden");
+            //$("#keizerkeuze").attr("href", "/choose?id=" + idx);
+          }
+        } catch (ex) {
+          private_methods.showError("set_keizer", ex);
         }
         
       }

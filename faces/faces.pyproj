@@ -19,7 +19,9 @@
     <InterpreterId>{42ee62d3-f648-466b-887a-6ccca2b7cf51}</InterpreterId>
     <InterpreterVersion>3.5</InterpreterVersion>
     <IsWindowsApplication>False</IsWindowsApplication>
-    <WebBrowserPort>3640</WebBrowserPort>
+    <WebBrowserPort>6001</WebBrowserPort>
+    <WebBrowserUrl>
+    </WebBrowserUrl>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)' == 'Debug' ">
     <DebugSymbols>true</DebugSymbols>
@@ -54,10 +56,15 @@
     <Content Include="app.conf" />
     <Content Include="static\content\tree_example.png" />
     <Content Include="static\scripts\invites.js" />
+    <Content Include="templates\post_start.html" />
+    <Content Include="templates\post_mixer.html" />
+    <Content Include="templates\post_chooser.html" />
     <Content Include="templates\footer.html" />
     <Content Include="templates\header.html" />
+    <Content Include="templates\index_org.html" />
     <Content Include="templates\mixer.html" />
     <Content Include="templates\chooser.html" />
+    <Content Include="templates\post_picture.html" />
     <Content Include="templates\picture.html" />
     <Content Include="templates\index.html" />
     <Content Include="static\content\bootstrap.css" />
