@@ -389,19 +389,24 @@ var ru = (function ($, ru) {
               // Snap the picture right now
               ru.invites.handle_picture(imgcount, function () {
                 // Load the next page with this picture upon success
-                private_methods.load_stage("/post_picture", data);
+                private_methods.load_stage("/post_picture", data, function () {
+                  // Hide the 'next' button until the user has chosen an emperor
+                  $(butMain).addClass("hidden");
+                });
               });
               break;
             case "choose":
+              // Make sure the buttons are visible
+              $(butMain).removeClass("hidden");
               // Set the chosen emperor
               data.push({ "name": "id", "value": loc_keizerkeuze});
               // Load the correct page and then hide the next button
-              private_methods.load_stage("/post_choose", data, function () {
-                // Hide the 'next' button until the user has chosen an emperor
-                $(butMain).addClass("hidden");
-              });
+              private_methods.load_stage("/post_choose", data);
               break;
             case "mix":
+              // Make sure the buttons are visible
+              $(butMain).removeClass("hidden");
+              // Show the mixer
               private_methods.load_stage("/post_mix", data);
               break;
           }

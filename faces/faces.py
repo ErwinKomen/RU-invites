@@ -3,7 +3,9 @@ import io, os, sys
 import cv2
 import json
 import base64
-# import facemorpher      # This one is only available on Ponyland
+import facemorpher      # This one is only available on Ponyland
+from facemorpher import morpher
+from facemorpher import videoer
 
 from settings import CONFIGURATION, SERVE_PORT, KEIZER_BASE, KEIZERS
 
@@ -122,6 +124,22 @@ def keizer_image(idx):
     bestand = oKeizer['file']
     img_name = "{}/{}{}{}/{}".format(KEIZER_BASE, doel, geslacht, naam, bestand)
     return img_name
+
+def local_morpher(imgpaths, width=500, height=600, num_frames=20, fps=10,
+            out_frames=None, out_video=None, alpha=False, plot=False):
+    """
+    Create a morph sequence from multiple images in imgpaths
+    :param imgpaths: array or generator of image paths
+    """
+    print("Executing local_morpher")
+    video = videoer.Video(out_video, fps, width, height)
+    images_points_gen = load_valid_image_points(imgpaths, (height, width))
+    src_img, src_points = next(images_points_gen)
+    for dest_img, dest_points in images_points_gen:
+        morph(src_img, src_points, dest_img, dest_points, video,
+            width, height, num_frames, fps, out_frames, out_video, alpha, plot)
+        src_img, src_points = dest_img, dest_points
+    video.end()
 
 
 # @cherrypy.expose
@@ -273,7 +291,8 @@ class Root(object):
             for item in self.imgpaths:
                 print("item = [{}]".format(item))
             # Start up the facemorpher process
-            facemorpher.morpher(self.imgpaths, out_frames=self.out_frames)
+            # facemorpher.morpher(self.imgpaths, out_frames=self.out_frames)
+            local_morpher(self.imgpaths, out_frames=self.out_frames)
             # Load the 'picture' template
             sHtml = get_template_unit(self.template_post_mixer)
             oBack['status'] = "ok"
