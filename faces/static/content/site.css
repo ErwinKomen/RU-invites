@@ -1014,3 +1014,13 @@ table tr.selected:hover {
     background: #4CAF50; /* Green background */
     cursor: pointer; /* Cursor on hover */
 }
+
+.status-table td {
+  background-color: lightgray;
+  border-color: white;
+  color: darkblue;
+}
+.status-table table {
+  border-color: white;
+  border-width: 1px;
+}

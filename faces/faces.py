@@ -3,13 +3,15 @@ import io, os, sys
 import cv2
 import json
 import base64
-import facemorpher      # This one is only available on Ponyland
-from facemorpher import morpher
-from facemorpher import videoer
+import copy
+# The Radboud University adaptation of the facemorpher
+from ru_morpher import ru_morpher
+from utils import get_error_message, DoError
 
 from settings import CONFIGURATION, SERVE_PORT, KEIZER_BASE, KEIZERS
 
 OUT_FRAMES = "static/tmp"
+STAT_FILE = "static/tmp/status.json"
 
 def get_template(sLoc, include_init=0):
     """Get the template from the location and return its contents"""
@@ -40,39 +42,7 @@ def get_template_unit(sLoc):
     # Return the data
     return sData
 
-def get_error_message():
-    arInfo = sys.exc_info()
-    if len(arInfo) == 3:
-        sMsg = str(arInfo[1])
-        if arInfo[2] != None:
-            sMsg += " at line " + str(arInfo[2].tb_lineno)
-        return sMsg
-    else:
-        return ""
-
-def DoError():
-    sMsg = get_error_message()
-    print("Error: " + sMsg + "\n", file=sys.stderr)
-
-def take_picture():
-    """This takes a picture and then saves it (where??)"""
-
-    cam = cv2.VideoCapture(0)
-    img_counter = 0
-    cv2.namedWindow("test")
-    ret, frame = cam.read()
-    # Display the image in the named window "test"
-    cv2.imshow("test", frame)
-    # Save the image
-    img_name = "static/opencv_frame_{}.png".format(img_counter)
-    cv2.imwrite(img_name, frame)
-    print("{} written!".format(img_name))
-    #sRoot = os.path.abspath(os.getcwd())
-    #sPath = sRoot + "/" + img_name
-    #return sPath
-    return img_name
-
-def retrieve_picture(img_counter):
+def get_picture_name(img_counter):
     img_name = "static/opencv_frame_{}.png".format(img_counter)
     return img_name
 
@@ -125,22 +95,6 @@ def keizer_image(idx):
     img_name = "{}/{}{}{}/{}".format(KEIZER_BASE, doel, geslacht, naam, bestand)
     return img_name
 
-def local_morpher(imgpaths, width=500, height=600, num_frames=20, fps=10,
-            out_frames=None, out_video=None, alpha=False, plot=False):
-    """
-    Create a morph sequence from multiple images in imgpaths
-    :param imgpaths: array or generator of image paths
-    """
-    print("Executing local_morpher")
-    video = videoer.Video(out_video, fps, width, height)
-    images_points_gen = load_valid_image_points(imgpaths, (height, width))
-    src_img, src_points = next(images_points_gen)
-    for dest_img, dest_points in images_points_gen:
-        morph(src_img, src_points, dest_img, dest_points, video,
-            width, height, num_frames, fps, out_frames, out_video, alpha, plot)
-        src_img, src_points = dest_img, dest_points
-    video.end()
-
 
 # @cherrypy.expose
 class Root(object):
@@ -156,19 +110,56 @@ class Root(object):
     template_post_choos = "templates/post_chooser.html"
     template_post_mixer = "templates/post_mixer.html"
     out_frames = OUT_FRAMES                     # Directory where the output images are stored
+    status_file = os.path.abspath(os.path.join(os.getcwd(), STAT_FILE))
     imgpaths = []
     counter = 1
+    session_idx = ""
+    lStatus = []
     root_path = os.path.abspath(os.getcwd())
     button_list = [
         { 'stage': 'start',   'next': 'picture','lead': 'Neem uw foto en we gaan het zien...',
           'text': "Maak mijn portret", "title": "Stap 1: neem je eigen foto (met de webcam)" },
         { 'stage': 'picture', 'next': 'choose', 'lead': 'Uw foto is er, nu nog een keizer kiezen...',
           'text': "Neem deze keizer",  "title": "Stap 2: Neem de geselecteerde keizer" },
-        { 'stage': 'choose',  'next': 'mix',    'lead': 'Houd u vast, de mixer gaat werken...',
+        { 'stage': 'choose',  'next': 'mix',    'lead': 'Houd u vast, de gezichtenmixer wordt opgestart...',
           'text': "Combineer",         "title": "Stap 3: combineer" },
         { 'stage': 'mix',     'next': 'start',  'lead': 'Hier is het resultaat...',
           'text': "Maak mijn portret", "title": "Begin helemaal overnieuw" }
     ]
+
+    def get_status_object(self, session_id = None):
+        # Read the status file
+
+        if os.path.exists(self.status_file):
+            with io.open(self.status_file, "r", encoding="utf8") as f:
+                lStatus = json.load(f)
+            self.lStatus = copy.copy(lStatus)
+        else:
+            self.lStatus = []
+        if session_id == None:
+            session_id = self.counter
+        elif isinstance(session_id, str):
+            session_id = int(session_id)
+        for oItem in self.lStatus:
+            if 'count' in oItem and oItem['count'] == session_id:
+                return oItem
+        # Getting here means no success
+        return None
+
+    def set_status(self, sStatus, sMsg="", session_id=None):
+        if session_id == None:
+            session_id = self.counter
+        elif isinstance(session_id, str):
+            session_id = int(session_id)
+        oStatus = self.get_status_object(session_id)
+        if oStatus == None:
+            oStatus = {'status': '', 'msg': '', 'count': session_id}
+            self.lStatus.append(oStatus)
+        oStatus['status'] = sStatus
+        oStatus['msg'] = sMsg
+        # Write the status
+        with io.open(self.status_file, "w", encoding="utf8") as f:
+            json.dump(self.lStatus, f,)
 
     @cherrypy.expose
     def index(self):
@@ -176,8 +167,12 @@ class Root(object):
 
         # Increment the counter
         # self.counter += 1
+
+        # Create a session_index string
+        self.session_idx = str(self.counter)
+
         # Load the 'root' template
-        sHtml = get_template(self.template_index, 1).replace("@img_count@", str(self.counter))
+        sHtml = get_template(self.template_index, 1).replace("@img_count@", self.session_idx)
         sHtml = sHtml.replace("@post_start@", get_template_unit(self.template_post_start))
         return sHtml
 
@@ -190,9 +185,14 @@ class Root(object):
 
         # Increment the counter
         self.counter += 1
+        if self.counter > 9:
+            self.counter = 0
+        # Create a session_index string
+        self.session_idx = str(self.counter)
+        # Set the status
+        self.set_status("start", "counter={}".format(self.counter))
         # Load the 'root' template
-        sHtml = get_template_unit(self.template_post_start).replace("@img_count@", str(self.counter))
-        # sHtml = sHtml.replace("@post_start@", get_template_unit(self.template_post_start))
+        sHtml = get_template_unit(self.template_post_start).replace("@img_count@", self.session_idx)
 
         # Respond appropriately
         oBack['status'] = "ok"
@@ -214,7 +214,7 @@ class Root(object):
             sData = image_content[idx:]
             data = base64.b64decode(sData)
             # Determine where to put the image
-            img_name = retrieve_picture(counter) 
+            img_name = get_picture_name(counter) 
             # Calculate the local path
             sPath = os.path.abspath(os.path.join(self.root_path, img_name))
             # Remove the old image with this name (if it exists)
@@ -223,6 +223,9 @@ class Root(object):
             # Write the new image
             with io.open(sPath, "wb") as fout:
                 fout.write(data)
+
+            # Set the status
+            self.set_status("img", "img+name={}".format(img_name))
 
         # Respond appropriately
         oBack['status'] = "ok"
@@ -235,7 +238,18 @@ class Root(object):
 
     @cherrypy.expose
     def post_imgcount(self):
-        return str(self.counter)
+        return self.session_idx
+
+    @cherrypy.expose
+    def post_status(self, session_id=None):
+        # Find the current status object
+        oStatus = self.get_status_object(session_id)
+        if oStatus == None:
+            oStatus = {'status': 'error', 'msg': 'Cannot determine the status'}
+        # Show the status in my logging
+        print("status (c={}, sid={}) [{}]: {}".format(self.counter, session_id, oStatus['status'], oStatus['msg']), file=sys.stderr)
+        # Return the current status object
+        return json.dumps(oStatus)
 
     @cherrypy.expose
     def post_picture(self):
@@ -245,11 +259,14 @@ class Root(object):
         oBack = {'status': 'error', 'html': 'kon niet lezen'}
 
         # Retrieve the currently existing image
-        img_name = retrieve_picture(self.counter)
+        img_name = get_picture_name(self.counter)
         # Load the 'picture' template - this shows the resulting picture
         sHtml = get_template_unit(self.template_post_pictu).replace("@img_name@", img_name)     
         # Put in the list of emperors
         sHtml = sHtml.replace("@keizer_list@", keizer_list())   
+
+        # Set the status
+        self.set_status("picture", "img_name={}".format(img_name))
 
         # Respond appropriately
         oBack['status'] = "ok"
@@ -263,7 +280,7 @@ class Root(object):
         oBack = {'status': 'error', 'html': 'kon niet lezen'}
 
         # Retrieve the currently existing image
-        img_self = retrieve_picture(self.counter)
+        img_self = get_picture_name(self.counter)
         # Find out which file name this is
         img_keizer = keizer_image(id)
         # Put the images in imgpaths
@@ -275,10 +292,31 @@ class Root(object):
         sHtml = sHtml.replace("@img_keizer@", img_keizer)
         sHtml = sHtml.replace("@img_self@", img_self)
 
+        # Set the status
+        self.set_status("picture", "img_keizer={}".format(img_keizer))
+
         # Respond appropriately
         oBack['status'] = "ok"
         oBack['html'] = sHtml
         return json.dumps(oBack)
+
+    def mix_callback(self, iCounter, iStep, dest_img, dest_points):
+        sMsg = "This is step {} of session {}".format(iStep, iCounter)
+        self.set_status("callback", sMsg, session_id=iCounter)
+        #bFound = False
+        ## Update the status
+        #self.get_status_object()
+        ## Find the correct status object
+        #for oItem in self.lStatus:
+        #    if 'count' in oItem and oItem['count'] == iCounter:
+        #        bFound = True
+        #        # Provide feedback for this step
+        #        oItem['status'] = 'callback'
+        #        oItem['msg'] = "This is step {}".format(iStep)
+
+        ## Determine what to do if we don't find it
+        #if not bFound:
+        #    print("Mix_callback cannot find status object for {}".format(iCounter), file=sys.stderr)
 
     @cherrypy.expose
     def post_mix(self):
@@ -286,16 +324,38 @@ class Root(object):
         # Default reply
         sHtml = 'kon niet lezen'
         oBack = {'status': 'error', 'html': sHtml}
+        lRes = []
 
         try:
+
             for item in self.imgpaths:
-                print("item = [{}]".format(item))
+                print("item = [{}]".format(item), file=sys.stderr)
             # Start up the facemorpher process
-            # facemorpher.morpher(self.imgpaths, out_frames=self.out_frames)
-            local_morpher(self.imgpaths, out_frames=self.out_frames)
+            out_dir = "{}/{}".format(self.out_frames, self.session_idx)
+
+            # Set the status
+            self.set_status("mix", "starting out_dir={}".format(out_dir))
+
+            # Perform the morphing
+            ru_morpher(self.imgpaths, out_frames=out_dir, obj=self) # counter=self.counter, callback = self.mix_callback)
+
+            # Set the status
+            self.set_status("mix", "creating page")
+
             # Load the 'picture' template
             sHtml = get_template_unit(self.template_post_mixer)
+            # Create the result picture references
+            for i in range(1,19):
+                hidden = "" if i == 1 else " hidden"
+                imgnum = str(i).zfill(3)
+                sLine = "<img id=\"pic{}\" src=\"static/tmp/{}/frame{}.png\" title=\"{}/18\" class=\"result-pic {}\" />".format(
+                    imgnum, self.session_idx, imgnum, i,hidden)
+                lRes.append(sLine)
+            sHtml = sHtml.replace("@results@", "\n".join(lRes))
+            sHtml = sHtml.replace("@session_idx@", self.session_idx)
             oBack['status'] = "ok"
+            # Set the status
+            self.set_status("finish", "ready")
         except:
             sHtml = get_error_message()
             DoError()
@@ -310,7 +370,7 @@ class Root(object):
         """While showing the culprit's image, let him choose an emperor"""
 
         # Retrieve the currently existing image
-        img_name = retrieve_picture(self.counter)
+        img_name = get_picture_name(self.counter)
         # Load the 'picture' template - this shows the resulting picture
         sHtml = get_template(self.template_pictu).replace("@img_name@", img_name)     
         # Put in the list of emperors
@@ -321,7 +381,7 @@ class Root(object):
     def choose(self, id=0):
 
         # Retrieve the currently existing image
-        img_self = retrieve_picture(self.counter)
+        img_self = get_picture_name(self.counter)
         # Find out which file name this is
         img_keizer = keizer_image(id)
         # Put the images in imgpaths
@@ -341,7 +401,7 @@ class Root(object):
             for item in self.imgpaths:
                 print("item = [{}]".format(item))
             # Perform the mixing
-            facemorpher.morpher(self.imgpaths, out_frames=self.out_frames)
+            ru_morpher(self.imgpaths, out_frames=self.out_frames)
             # Load the 'picture' template
             sHtml = get_template(self.template_mixer, 2)
         except:
@@ -355,8 +415,19 @@ class Root(object):
 cherrypy.config.update({'server.socket_port': SERVE_PORT,})
 
 # Grab the main access
-if __name__ == '__main__':
-    # Define conf
-    conf = CONFIGURATION
-    # Start serving as if from /
-    cherrypy.quickstart(Root(), '/', conf)
+# if __name__ == '__main__':
+
+# Define conf
+conf = CONFIGURATION
+
+# Start serving as if from /
+# OLD: cherrypy.quickstart(Root(), '/', conf)
+
+# This is to serve as a UWSGI application
+
+cherrypy.config.update({'engine.autoreload.on': False})
+cherrypy.server.unsubscribe()
+cherrypy.engine.start()
+
+# OLD: wsgiapp = cherrypy.tree.mount(Root(), config=conf)
+application = cherrypy.tree.mount(Root(), config=conf)

@@ -316,7 +316,7 @@ var ru = (function ($, ru) {
       },
 
       // show the picture indicated by the slider number
-      update_mixer : function(el) {
+      update_mixer : function(el, sSessionIdx) {
         var picnum = 0,
             elTest = null,
             sPicName = "",
@@ -335,7 +335,10 @@ var ru = (function ($, ru) {
           $("#pic" + sNumber).removeClass("hidden");
 
           // Testing: show the picture name
-          sPicName = "static/tmp/frame" + sNumber + ".png";
+          if (sSessionIdx === undefined || sSessionIdx === "") {
+            sSessionIdx = "0";
+          }
+          sPicName = "static/tmp/" + sSessionIdx + "/frame" + sNumber + ".png";
           elTest = $("#testpic");
           $(elTest).html("showing " + sPicName);
         }
@@ -362,7 +365,6 @@ var ru = (function ($, ru) {
               // Set the lead text
               $(spanLead).html(oInfo["lead"]);
 
-              //$(butMain).addEventListener("onclick", function () { ru.invites.init_stage(oInfo["next"]); });
               // Remove all previous listeners
               $(butMain).off();
               // Set the new event listener
@@ -400,19 +402,66 @@ var ru = (function ($, ru) {
               $(butMain).removeClass("hidden");
               // Set the chosen emperor
               data.push({ "name": "id", "value": loc_keizerkeuze});
-              // Load the correct page and then hide the next button
+              // Load the correct page 
               private_methods.load_stage("/post_choose", data);
               break;
             case "mix":
               // Make sure the buttons are visible
               $(butMain).removeClass("hidden");
-              // Show the mixer
+              // Start up a process to receive status feedback after a few milliseconds
+              setTimeout(function () { ru.invites.show_status(); }, 200);
+              // Start up the mixer: the facemorphing process
               private_methods.load_stage("/post_mix", data);
               break;
           }
 
         } catch (ex) {
           private_methods.showError("init_stage", ex);
+        }
+      },
+
+      // Show the current status
+      show_status: function () {
+        var elStatus = null,
+            data = [],
+            lHtml = [];
+
+        try {
+          // Try to find the status div
+          elStatus = $("#py_status");
+          // Indicate who we are to get the correct status
+          data.push({"name": "session_id", "value": imgcount });
+          // Get the status
+          $.post("/post_status", data, function (response) {
+            var oResponse = null,
+                sHtml = "";
+            // Sanity check
+            if (response !== undefined) {
+              oResponse = JSON.parse(response);
+              if ('status' in oResponse && 'msg' in oResponse) {
+                // Combine the status and the message
+                lHtml = [];
+                lHtml.push("<table>");
+                lHtml.push("<tr><td>Status</td><td>" + oResponse['status'] + "</td></tr>");
+                lHtml.push("<tr><td>Info</td><td>" + oResponse['msg'] + "</td></tr>");
+                lHtml.push("</table>");
+                // sHtml = "<span>Status=" + oResponse['status'] + "</span><span>" + oResponse['msg'] + "</span>";
+                sHtml = lHtml.join("\n");
+                $(elStatus).html(sHtml);
+
+                // Make sure the status is updated if needed
+                switch (oResponse['status']) {
+                  case "finish":
+                    break;
+                  case "mix":
+                    setTimeout(function () { ru.invites.show_status(); }, 200);
+                    break;
+                }
+              }
+            }
+          });
+        } catch (ex) {
+          private_methods.showError("show_status", ex);
         }
       },
 

@@ -4,12 +4,12 @@
         <div class="slidecontainer">
           <input type="range" min="1" max="18" value="1" 
                  class="slider" 
-                 oninput="ru.invites.update_mixer(this);"
+                 oninput="ru.invites.update_mixer(this, '@session_idx@');"
                  id="slide_range" />
         </div>
         <div id="testpic"></div>
-        <div class="result-pic-container">
- 
+        <div class="result-pic-container" id="result-pic">
+         @results@
         </div>
       </div>
       <div class="col-md-6">

@@ -48,7 +48,13 @@
     <Compile Include="faces.py">
       <SubType>Code</SubType>
     </Compile>
+    <Compile Include="ru_morpher.py">
+      <SubType>Code</SubType>
+    </Compile>
     <Compile Include="settings.py">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="utils.py">
       <SubType>Code</SubType>
     </Compile>
   </ItemGroup>
