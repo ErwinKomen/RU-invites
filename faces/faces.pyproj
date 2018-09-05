@@ -70,11 +70,7 @@
     <Content Include="templates\post_chooser.html" />
     <Content Include="templates\footer.html" />
     <Content Include="templates\header.html" />
-    <Content Include="templates\index_org.html" />
-    <Content Include="templates\mixer.html" />
-    <Content Include="templates\chooser.html" />
     <Content Include="templates\post_picture.html" />
-    <Content Include="templates\picture.html" />
     <Content Include="templates\index.html" />
     <Content Include="static\content\bootstrap.css" />
     <Content Include="static\content\bootstrap.min.css" />

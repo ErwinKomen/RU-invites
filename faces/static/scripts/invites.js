@@ -347,7 +347,7 @@ var ru = (function ($, ru) {
           }
           sPicName = "static/tmp/" + sSessionIdx + "/frame" + sNumber + ".png";
           elTest = $("#testpic");
-          $(elTest).html("showing " + sPicName);
+          //$(elTest).html("showing " + sPicName);
         }
 
       },
@@ -433,12 +433,17 @@ var ru = (function ($, ru) {
       // Show the current status
       show_status: function () {
         var elStatus = null,
+            elProgress = null,
+            elBar = null,
+            percentage = 0,
             data = [],
             lHtml = [];
 
         try {
           // Try to find the status div
           elStatus = $("#py_status");
+          elProgress = $("#py_progress");
+          elBar = $(elProgress).find(".progress-bar").first();
           // Indicate who we are to get the correct status
           data.push({"name": "session_id", "value": imgcount });
           // Get the status
@@ -469,12 +474,27 @@ var ru = (function ($, ru) {
                     //  =========== DEBUG ============
                     console.log("show_status 2: finish");
                     // ===============================
+
+                    // Hide the progress bar
+                    $(elBar).attr("style", "width: 0%;");
+                    $(elProgress).addClass("hidden");
                     break;
                   case "mix":
                   case "callback":
                     //  =========== DEBUG ============
                     console.log("show_status 3: mix");
                     // ===============================
+                    if ('ptc' in oResponse) {
+                      percentage = oResponse['ptc'];
+                    } else {
+                      // Set the percentage to zero
+                      percentage = 0;
+                    }
+                    $(elBar).attr("aria-valuenow", percentage.toString());
+                    $(elBar).attr("style", "width: "+percentage.toString()+"%;");
+                    $(elBar).html(percentage.toString());
+                    // Make sure progress bar is visible
+                    $(elProgress).removeClass("hidden");
                     setTimeout(function () { ru.invites.show_status(); }, 200);
                     break;
                 }

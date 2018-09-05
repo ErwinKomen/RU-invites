@@ -79,7 +79,7 @@ def triangular_affine_matrices(vertices, src_points, dest_points):
         yield mat
 
 def warp_image(src_img, src_points, dest_points, dest_shape, dtype=np.uint8, 
-               result_type="zero", bk_img=None):
+               result_type="zero", bk_img=None, smoothing=False):
     # Resultant image will not have an alpha channel
     num_chans = 3
 
@@ -118,15 +118,17 @@ def warp_image(src_img, src_points, dest_points, dest_shape, dtype=np.uint8,
 
             # Step 2.c: get the edge of the mask
             contour = cv2.Canny(mask, 100, 200)
-            #cv2.imwrite('erwin_contour.png', contour)
-            #cv2.imwrite('erwin_mask.png', mask)
 
-            # Step 2.d: show that we have FOUND the contour
-            #white_fill = np.full( (rows, cols, num_chans), 255, dtype)
-            #result_img[np.where(contour==255)] = white_fill[np.where(contour==255)]
-            
-            # Step 2.d: take the average of two images
-            avg_img = cv2.addWeighted(bk_img, 0.5, src_img, 0.5, 0)
+            # Possibly add smoothing in a larger area
+            if smoothing:
+                kernel = np.ones((3,3),np.uint8)
+                contour = cv2.dilate(contour, kernel, iterations=1)
+                # Create an image with the smoothing
+                # TODO: work this out in a better way
+                avg_img = cv2.addWeighted(bk_img, 0.5, src_img, 0.5, 0)
+            else:
+                # Step 2.d: Just take the average of two images            
+                avg_img = cv2.addWeighted(bk_img, 0.5, src_img, 0.5, 0)
             
             # Step 2.e: replace the contour with the averaged
             result_img[np.where(contour==255)] = avg_img[np.where(contour==255)]

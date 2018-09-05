@@ -4,6 +4,7 @@ import cv2
 import json
 import base64
 import copy
+import math
 # The Radboud University adaptation of the facemorpher
 from ru_morpher import ru_morpher
 from utils import get_error_message, DoError, debugMsg
@@ -88,10 +89,10 @@ def keizer_image(idx):
     # Construct the file name
     if oKeizer['doel'] == "kind":
         doel = "Kinderen/"
-        geslacht = "Jongens/" if oKeizer['geslacht'] == "m" else "Meisjes"
+        geslacht = "Jongens/" if oKeizer['geslacht'] == "m" else "Meisjes/"
     else:
         doel = ""
-        geslacht = "Mannen/" if oKeizer['geslacht'] == "m" else "Vrouwen"
+        geslacht = "Mannen/" if oKeizer['geslacht'] == "m" else "Vrouwen/"
     naam = oKeizer['naam']
     bestand = oKeizer['file']
     img_name = "{}/{}{}{}/{}".format(KEIZER_BASE, doel, geslacht, naam, bestand)
@@ -100,12 +101,6 @@ def keizer_image(idx):
 
 # @cherrypy.expose
 class Root(object):
-    # ---------- OLD =-----------
-    template_pictu = "templates/picture.html"
-    template_choos = "templates/chooser.html"
-    template_mixer = "templates/mixer.html"
-    # ---------------------------
-
     template_index = "templates/index.html"
     template_post_start = "templates/post_start.html"
     template_post_pictu = "templates/post_picture.html"
@@ -148,7 +143,7 @@ class Root(object):
         # Getting here means no success
         return None
 
-    def set_status(self, sStatus, sMsg="", session_id=None):
+    def set_status(self, sStatus, sMsg="", session_id=None, ptc=0):
         if session_id == None:
             session_id = self.counter
         elif isinstance(session_id, str):
@@ -159,13 +154,11 @@ class Root(object):
             self.lStatus.append(oStatus)
         oStatus['status'] = sStatus
         oStatus['msg'] = sMsg
+        if ptc != None:
+            oStatus['ptc'] = ptc
         # Write the status
         with io.open(self.status_file, "w", encoding="utf8") as f:
             json.dump(self.lStatus, f,)
-
-    def default(self):
-        sys.exit()
-    default.exposed = True
 
     @cherrypy.expose
     def index(self):
@@ -309,9 +302,10 @@ class Root(object):
     def mix_callback(self, iCounter, percent, points):
         try:
             debugMsg("mix_callback [1]")
+            percent = 1 - percent
             sMsg = "This is {:.1f}% of session {}".format(percent * 100, iCounter)
             debugMsg("mix_callback [2]: " + sMsg)
-            self.set_status("callback", sMsg, session_id=iCounter)
+            self.set_status("callback", sMsg, session_id=iCounter, ptc= math.ceil( percent*100))
         except:
             DoError("mix_callback: ")
 
@@ -322,6 +316,8 @@ class Root(object):
         sHtml = 'kon niet lezen'
         oBack = {'status': 'error', 'html': sHtml}
         lRes = []
+        max_img = 18
+
 
         try:
 
@@ -341,12 +337,13 @@ class Root(object):
 
             # Load the 'picture' template
             sHtml = get_template_unit(self.template_post_mixer)
+            show_img = math.floor(max_img / 2)
             # Create the result picture references
-            for i in range(1,19):
-                hidden = "" if i == 1 else " hidden"
+            for i in range(1,max_img + 1):
+                hidden = "" if i == show_img else " hidden"
                 imgnum = str(i).zfill(3)
-                sLine = "<img id=\"pic{}\" src=\"static/tmp/{}/frame{}.png\" title=\"{}/18\" class=\"result-pic {}\" />".format(
-                    imgnum, self.session_idx, imgnum, i,hidden)
+                sLine = "<img id=\"pic{}\" src=\"static/tmp/{}/frame{}.png\" title=\"{}/{}\" class=\"result-pic {}\" />".format(
+                    imgnum, self.session_idx, imgnum, i, max_img, hidden)
                 lRes.append(sLine)
             sHtml = sHtml.replace("@results@", "\n".join(lRes))
             sHtml = sHtml.replace("@session_idx@", self.session_idx)
@@ -361,49 +358,6 @@ class Root(object):
         oBack['html'] = sHtml
         return json.dumps(oBack)
     
-    @cherrypy.expose
-    def picture(self):
-        """While showing the culprit's image, let him choose an emperor"""
-
-        # Retrieve the currently existing image
-        img_name = get_picture_name(self.counter)
-        # Load the 'picture' template - this shows the resulting picture
-        sHtml = get_template(self.template_pictu).replace("@img_name@", img_name)     
-        # Put in the list of emperors
-        sHtml = sHtml.replace("@keizer_list@", keizer_list())   
-        return sHtml
-
-    @cherrypy.expose
-    def choose(self, id=0):
-
-        # Retrieve the currently existing image
-        img_self = get_picture_name(self.counter)
-        # Find out which file name this is
-        img_keizer = keizer_image(id)
-        # Put the images in imgpaths
-        self.imgpaths.clear()
-        self.imgpaths.append(img_self)
-        self.imgpaths.append(img_keizer)
-        # Load the 'picture' template
-        sHtml = get_template(self.template_choos)
-        sHtml = sHtml.replace("@img_keizer@", img_keizer)
-        sHtml = sHtml.replace("@img_self@", img_self)
-        return sHtml
-
-    @cherrypy.expose
-    def mix(self):
-        sHtml = "foutje"
-        try:
-            for item in self.imgpaths:
-                print("item = [{}]".format(item))
-            # Perform the mixing
-            ru_morpher(self.imgpaths, out_frames=self.out_frames)
-            # Load the 'picture' template
-            sHtml = get_template(self.template_mixer, 2)
-        except:
-            sHtml = get_error_message()
-            DoError()
-        return sHtml
 
 
    
