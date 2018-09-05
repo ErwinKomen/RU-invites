@@ -1017,10 +1017,14 @@ table tr.selected:hover {
 
 .status-table td {
   background-color: lightgray;
-  border-color: white;
+  border: 1px solid white;
+  padding-left: 3px;
+  padding-right: 3px;
   color: darkblue;
 }
-.status-table table {
-  border-color: white;
-  border-width: 1px;
+.status-table td:hover {
+  background-color: lightyellow;
+  color: black;
+  border: 1px solid darkred;
 }
+

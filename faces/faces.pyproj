@@ -57,6 +57,9 @@
     <Compile Include="utils.py">
       <SubType>Code</SubType>
     </Compile>
+    <Compile Include="warper.py">
+      <SubType>Code</SubType>
+    </Compile>
   </ItemGroup>
   <ItemGroup>
     <Content Include="app.conf" />

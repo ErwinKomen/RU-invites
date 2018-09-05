@@ -92,11 +92,14 @@ var ru = (function ($, ru) {
       },
 
       // Get the image count number
-      get_imgcount: function() {
+      get_imgcount: function (func_next) {
         var ajaxurl = "/post_imgcount";
 
         try {
           if (butMain !== null) {
+            // Reset my imgcount
+            imgcount = 0;
+            // Issue a POST
             $.post(ajaxurl, null, function (response) {
               // Sanity check
               if (response !== undefined) {
@@ -105,6 +108,10 @@ var ru = (function ($, ru) {
                 console.log("get_imgcount: " + imgcount.toString());
                 // Set it on the correct place
                 $(butMain).attr("picnum", imgcount.toString());
+                // If necessary call the next function
+                if (func_next !== undefined) {
+                  func_next();
+                }
               }
             });
           }
@@ -388,12 +395,15 @@ var ru = (function ($, ru) {
               });
               break;
             case "picture":
-              // Snap the picture right now
-              ru.invites.handle_picture(imgcount, function () {
-                // Load the next page with this picture upon success
-                private_methods.load_stage("/post_picture", data, function () {
-                  // Hide the 'next' button until the user has chosen an emperor
-                  $(butMain).addClass("hidden");
+              // Make sure we get the right image count
+              private_methods.get_imgcount(function () {
+                // Snap the picture right now
+                ru.invites.handle_picture(imgcount, function () {
+                  // Load the next page with this picture upon success
+                  private_methods.load_stage("/post_picture", data, function () {
+                    // Hide the 'next' button until the user has chosen an emperor
+                    $(butMain).addClass("hidden");
+                  });
                 });
               });
               break;
@@ -439,6 +449,10 @@ var ru = (function ($, ru) {
             if (response !== undefined) {
               oResponse = JSON.parse(response);
               if ('status' in oResponse && 'msg' in oResponse) {
+                //  =========== DEBUG ============
+                console.log("show_status 1: " + oResponse['msg']);
+                // ===============================
+
                 // Combine the status and the message
                 lHtml = [];
                 lHtml.push("<table>");
@@ -452,8 +466,15 @@ var ru = (function ($, ru) {
                 // Make sure the status is updated if needed
                 switch (oResponse['status']) {
                   case "finish":
+                    //  =========== DEBUG ============
+                    console.log("show_status 2: finish");
+                    // ===============================
                     break;
                   case "mix":
+                  case "callback":
+                    //  =========== DEBUG ============
+                    console.log("show_status 3: mix");
+                    // ===============================
                     setTimeout(function () { ru.invites.show_status(); }, 200);
                     break;
                 }

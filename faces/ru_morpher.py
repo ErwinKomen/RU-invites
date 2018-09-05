@@ -15,13 +15,14 @@ import sys
 # Facemorpher-specific imports
 from facemorpher import locator
 from facemorpher import aligner
-from facemorpher import warper
+# from facemorpher import warper
+import warper
 from facemorpher import blender
 from facemorpher import plotter
 from facemorpher import videoer
 
 # RU-specific imports
-from utils import get_error_message, DoError
+from utils import get_error_message, DoError, debugMsg
 
 def load_image_points(path, size):
     img = cv2.imread(path)
@@ -55,9 +56,10 @@ def alpha_image(img, points):
     mask = blender.mask_from_points(img.shape[:2], points)
     return np.dstack((img, mask))
 
-def morph(src_img, src_points, dest_img, dest_points,
-                    video, width=500, height=600, num_frames=20, fps=10,
-                    out_frames=None, out_video=None, alpha=False, plot=False):
+def morph(src_img, src_points, dest_img, dest_points, 
+          video, width=500, height=600, num_frames=20, fps=10, 
+          out_frames=None, out_video=None, alpha=False, plot=False, 
+          obj=None, result_type="zero"):
     """
     Create a morph sequence from source to destination image
     :param src_img: ndarray source image
@@ -77,8 +79,16 @@ def morph(src_img, src_points, dest_img, dest_points,
     # Produce morph frames!
     for percent in np.linspace(1, 0, num=num_frames):
         points = locator.weighted_average_points(src_points, dest_points, percent)
-        src_face = warper.warp_image(src_img, src_points, points, size)
-        end_face = warper.warp_image(dest_img, dest_points, points, size)
+        src_face = warper.warp_image(src_img, src_points, points, size, result_type=result_type, bk_img=dest_img)
+        end_face = warper.warp_image(dest_img, dest_points, points, size, result_type=result_type, bk_img=dest_img)
+
+        # Check for a callback function
+        if obj != None:
+            debugMsg("morph calls mix_callback session={}".format(obj.counter))
+            obj.mix_callback(obj.counter, percent, points)
+        else:
+            debugMsg("morph has obj=None")
+
         average_face = blender.weighted_average(src_face, end_face, percent)
         average_face = alpha_image(average_face, points) if alpha else average_face
 
@@ -90,8 +100,8 @@ def morph(src_img, src_points, dest_img, dest_points,
     video.write(dest_img, stall_frames)
     plt.show()
 
-def ru_morpher(imgpaths, width=500, height=600, num_frames=20, fps=10,
-                        out_frames=None, out_video=None, alpha=False, plot=False, obj=None):
+def ru_morpher(imgpaths, width=500, height=600, num_frames=20, fps=10, \
+               out_frames=None, out_video=None, alpha=False, plot=False, obj=None):
     """
     Create a morph sequence from multiple images in imgpaths
     :param imgpaths: array or generator of image paths
@@ -104,18 +114,18 @@ def ru_morpher(imgpaths, width=500, height=600, num_frames=20, fps=10,
         src_img, src_points = next(images_points_gen)
         iStep = 0
         for dest_img, dest_points in images_points_gen:
-            morph(src_img, src_points, dest_img, dest_points, video,
-                        width, height, num_frames, fps, out_frames, out_video, alpha, plot)
-            # Check for a callback function
-            if obj != None:
-                print("ru_morpher calls mix_callback {}, {}".format(obj.counter, iStep), file=sys.stdout)
-                obj.mix_callback(obj.counter, iStep, dest_img, dest_points)
-            else:
-                print("ru_morpher has obj=None", file=sys.stdout)
+
+            debugMsg("ru_morpher step {}".format(iStep))
+
+            morph(src_img, src_points, dest_img, dest_points, video, 
+                  width, height, num_frames, fps, out_frames, out_video, alpha, plot, 
+                  obj=obj, result_type = "image")
+
             # Set the new source = old destination
             src_img, src_points = dest_img, dest_points
 
             iStep += 1
+        debugMsg("ru_morpher video.end")
         video.end()
     except:
         sHtml = get_error_message()

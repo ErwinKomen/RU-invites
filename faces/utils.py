@@ -14,3 +14,6 @@ def DoError(sIntro = ""):
     sMsg = sIntro +  get_error_message()
     print("Error: " + sMsg + "\n", file=sys.stderr)
 
+def debugMsg(sMsg = ""):
+    print("DEBUG: " + sMsg + "\n", file=sys.stderr)
+    

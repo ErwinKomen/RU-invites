@@ -6,12 +6,14 @@ import base64
 import copy
 # The Radboud University adaptation of the facemorpher
 from ru_morpher import ru_morpher
-from utils import get_error_message, DoError
+from utils import get_error_message, DoError, debugMsg
 
 from settings import CONFIGURATION, SERVE_PORT, KEIZER_BASE, KEIZERS
 
 OUT_FRAMES = "static/tmp"
 STAT_FILE = "static/tmp/status.json"
+# Define conf
+conf = CONFIGURATION
 
 def get_template(sLoc, include_init=0):
     """Get the template from the location and return its contents"""
@@ -161,6 +163,10 @@ class Root(object):
         with io.open(self.status_file, "w", encoding="utf8") as f:
             json.dump(self.lStatus, f,)
 
+    def default(self):
+        sys.exit()
+    default.exposed = True
+
     @cherrypy.expose
     def index(self):
         """Show the opening page and allow people to start taking a picture"""
@@ -247,7 +253,7 @@ class Root(object):
         if oStatus == None:
             oStatus = {'status': 'error', 'msg': 'Cannot determine the status'}
         # Show the status in my logging
-        print("status (c={}, sid={}) [{}]: {}".format(self.counter, session_id, oStatus['status'], oStatus['msg']), file=sys.stderr)
+        debugMsg("status (c={}, sid={}) [{}]: {}".format(self.counter, session_id, oStatus['status'], oStatus['msg']))
         # Return the current status object
         return json.dumps(oStatus)
 
@@ -300,23 +306,14 @@ class Root(object):
         oBack['html'] = sHtml
         return json.dumps(oBack)
 
-    def mix_callback(self, iCounter, iStep, dest_img, dest_points):
-        sMsg = "This is step {} of session {}".format(iStep, iCounter)
-        self.set_status("callback", sMsg, session_id=iCounter)
-        #bFound = False
-        ## Update the status
-        #self.get_status_object()
-        ## Find the correct status object
-        #for oItem in self.lStatus:
-        #    if 'count' in oItem and oItem['count'] == iCounter:
-        #        bFound = True
-        #        # Provide feedback for this step
-        #        oItem['status'] = 'callback'
-        #        oItem['msg'] = "This is step {}".format(iStep)
-
-        ## Determine what to do if we don't find it
-        #if not bFound:
-        #    print("Mix_callback cannot find status object for {}".format(iCounter), file=sys.stderr)
+    def mix_callback(self, iCounter, percent, points):
+        try:
+            debugMsg("mix_callback [1]")
+            sMsg = "This is {:.1f}% of session {}".format(percent * 100, iCounter)
+            debugMsg("mix_callback [2]: " + sMsg)
+            self.set_status("callback", sMsg, session_id=iCounter)
+        except:
+            DoError("mix_callback: ")
 
     @cherrypy.expose
     def post_mix(self):
@@ -329,7 +326,7 @@ class Root(object):
         try:
 
             for item in self.imgpaths:
-                print("item = [{}]".format(item), file=sys.stderr)
+                debugMsg("item = [{}]".format(item))
             # Start up the facemorpher process
             out_dir = "{}/{}".format(self.out_frames, self.session_idx)
 
@@ -363,8 +360,7 @@ class Root(object):
         # Respond appropriately
         oBack['html'] = sHtml
         return json.dumps(oBack)
-
-
+    
     @cherrypy.expose
     def picture(self):
         """While showing the culprit's image, let him choose an emperor"""
@@ -414,20 +410,23 @@ class Root(object):
 # Set the port on which I will be serving
 cherrypy.config.update({'server.socket_port': SERVE_PORT,})
 
-# Grab the main access
-# if __name__ == '__main__':
+## ----------------------------------------------------
+## This is to serve as a plain python application
+## Grab the main access
+#if __name__ == '__main__':
 
-# Define conf
-conf = CONFIGURATION
+#    # Start serving as if from /
+#    cherrypy.quickstart(Root(), '/', conf)
+## ----------------------------------------------------
 
-# Start serving as if from /
-# OLD: cherrypy.quickstart(Root(), '/', conf)
 
+
+# ----------------------------------------------------
 # This is to serve as a UWSGI application
 
 cherrypy.config.update({'engine.autoreload.on': False})
 cherrypy.server.unsubscribe()
 cherrypy.engine.start()
 
-# OLD: wsgiapp = cherrypy.tree.mount(Root(), config=conf)
 application = cherrypy.tree.mount(Root(), config=conf)
+# ----------------------------------------------------
