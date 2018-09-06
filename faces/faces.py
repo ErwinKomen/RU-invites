@@ -79,7 +79,8 @@ def keizer_list():
 
     # other initializations
     naam_vorige = ""
-    anchor_code = " class=\"btn btn-default btn-xs\" title=\"@t@\" onclick=\"ru.invites.set_keizer(this, @k@)\""
+    keizer_code = "onclick=\"ru.invites.set_keizer(this, @k@)\""
+    anchor_code = " class=\"btn btn-default btn-xs\" title=\"@t@\" {}".format(keizer_code)
     for item in lKeizers:
         # Take the correct node id
         nodeid += 1
@@ -111,6 +112,7 @@ def keizer_list():
             naam_vorige = naam
         # Determine the anchor-text for the <a> element
         anchor_tekst = anchor_code.replace("@t@", naam).replace("@k@", str(item['id']))
+        js_keizer = keizer_code.replace("@k@", str(item['id']))
 
         # Build the HTML code for this line
         lHtml = []
@@ -151,7 +153,8 @@ def keizer_list():
         # Add empty block
         lHtml.append("<td class=\"arg-plus\" style=\"min-width: 20px;\"></td>")
         # Add emperor's name
-        lHtml.append("<td class=\"arg-text\" style=\"width: 100%;\"><span class=\"arg-endnode\">{}</span></td>".format(naam))
+        naam_volg = naam if volgnummer == 1 else "{} (versie #{})".format(naam, volgnummer)
+        lHtml.append("<td class=\"arg-text\" style=\"width: 100%;\" {}><span class=\"arg-endnode\">{}</span></td>".format(js_keizer, naam_volg))
         # Clickable cell to the right
         lHtml.append("<td align=\"right\"><a {}>{}</a></td>".format(anchor_tekst, volgnummer))
         # Finish the line
