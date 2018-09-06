@@ -19,7 +19,7 @@ KEIZER_BASE = "static/img"
 KEIZERS = [
     {"id": 1, "doel": "kind", "geslacht": "m", "naam": "Caligula",       "file": "13192017765_a078c7b2f5_o.jpg"},
     {"id": 2, "doel": "kind", "geslacht": "m", "naam": "Caligula",       "file": "13192024785_46eae3c17e_o.jpg"},
-    {"id": 3, "doel": "kind", "geslacht": "m", "naam": "Marcel Aurelius", "file": "5398415839_f3af34929c_o.jpg"},
+    {"id": 3, "doel": "kind", "geslacht": "m", "naam": "Marcus Aurelius", "file": "5398415839_f3af34929c_o.jpg"},
     {"id": 4, "doel": "kind", "geslacht": "v", "naam": "Crispina",       "file": "12453754554_34a994a30a_o.jpg"},
     {"id": 5, "doel": "kind", "geslacht": "v", "naam": "Crispina",       "file": "19014212733_69fd24d5e2_o.jpg"},
     {"id": 6, "doel": "kind", "geslacht": "v", "naam": "Sallustia Orbiana", "file": "25454131770_9a838cbcb3_o.jpg"},

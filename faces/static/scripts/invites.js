@@ -430,6 +430,72 @@ var ru = (function ($, ru) {
         }
       },
 
+      /**
+       * plus_click
+       *   Show or hide the <tr> elements under me, using 'nodeid' and 'childof'
+       *   Also: 
+       *    - adapt the +/- sign(s)
+       *    - show the [arg-summary] part when sign is '+', otherwise hide it
+       */
+      plus_click: function (el, sClass, bShow) {
+        var trNext = null,
+            sStatus = "",
+            elSummary = null,
+            trMe = null,
+            nodeid = 0;
+
+        try {
+          // Validate
+          if (el === undefined) { return; }
+          if ($(el).html().trim() === "") { return; }
+          // Get my nodeid as INTEGER
+          trMe = $(el).closest("tr");
+          nodeid = $(trMe).attr("nodeid");
+          // Get my status
+          sStatus = $(el).html().trim();
+          if (bShow !== undefined && bShow === false) {
+            sStatus = "-";
+          }
+          // Get *ALL* the <tr> elements that are my direct children
+          trNext = $(el).closest("tbody").find("tr");
+          $(trNext).each(function (index) {
+            if ($(this).attr("childof") === nodeid) {
+              if (sStatus === "+") {
+                // show it
+                $(this).removeClass("hidden");
+              } else {
+                // hide it
+                $(this).addClass("hidden");
+                // Hide children too
+                crpstudio.htable.plus_click($(this).find(".arg-plus").first(), loc_ht4, false);
+              }
+              if ($(this).hasClass("arg-grandchild")) {
+                // hide it
+                $(this).addClass("hidden");
+              }
+            }
+          });
+          // Find my own summary part
+          elSummary = $(el).nextAll(".arg-text").find(".arg-summary").first();
+          // Change my own status
+          switch (sStatus) {
+            case "+":
+              $(el).html("-");
+              // Hide the arg-summary
+              $(elSummary).addClass("hidden");
+              break;
+            case "-":
+              $(el).html("+");
+              // Show the arg-summary
+              $(elSummary).removeClass("hidden");
+              break;
+          }
+
+        } catch (ex) {
+          private_methods.showError("plus_click", ex);
+        }
+      },
+
       // Show the current status
       show_status: function () {
         var elStatus = null,

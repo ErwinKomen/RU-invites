@@ -59,23 +59,102 @@ def get_exif_info(path_name):
 def keizer_list():
     """Create a html list of emperors"""
 
+    # Initialisations
     lstE = []
     lKeizers = KEIZERS
     volgnummer = 1
+    nodeid = 1
+    parent = 1
+    doelgroep = ""
+    geslacht = ""
+    doelgroepid = 1
+    geslachtid = 1
+
+    # other initializations
     naam_vorige = ""
     anchor_code = " class=\"btn btn-default btn-xs\" title=\"@t@\" onclick=\"ru.invites.set_keizer(this, @k@)\""
     for item in lKeizers:
-        doelgroep = item['doel']
-        geslacht = "man" if item['geslacht'] == "m" else "vrouw"
+        # Take the correct node id
+        nodeid += 1
+        # Reset level changes
+        bLevelDoelgroep = False # Change in doelgroep
+        bLevelGeslacht = False  # Change in geslacht
+
+        # Check for change in [doelgroep]
+        if doelgroep != item['doel']:
+            doelgroep = item['doel']
+            # Indicate that we need a new level for this
+            bLevelDoelgroep = True
+
+        # Check for change in [geslacht]
+        if doelgroep == "kind":
+            g = "jongen" if item['geslacht'] == "m" else "vrouw"
+        else:
+            g = "man" if item['geslacht'] == "m" else "vrouw"
+        if geslacht != g:
+            geslacht = g
+            bLevelGeslacht = True
+
+        # Get the name and the variant-number for this name
         naam = item['naam']
         if naam == naam_vorige:
             volgnummer += 1
         else:
             volgnummer = 1
             naam_vorige = naam
+        # Determine the anchor-text for the <a> element
         anchor_tekst = anchor_code.replace("@t@", naam).replace("@k@", str(item['id']))
-        sItem = "<tr><td>{}</td><td>{}</td><td>{}</td><td align='center'><a {}>{}</a></td></tr>".format(
-            doelgroep, geslacht, naam, anchor_tekst, volgnummer)
+
+        # Build the HTML code for this line
+        lHtml = []
+        # Is this a change in the level 1, Doelgroep?
+        if bLevelDoelgroep:
+            lHtml.append("<tr nodeid=\"{}\" childof=\"1\">".format(nodeid))
+            # Process the "+" to open a doelgroep
+            lHtml.append("<td class=\"arg-plus\" style=\"min-width: 20px;\" onclick=\"crpstudio.htable.plus_click(this, 'func-inline');\">+</td>")
+            # Take three cells together
+            lHtml.append("<td class=\"arg-text\" colspan=\"3\" style=\"width: 100%;\"><span class=\"arg-line\"><code>{}</code></span></td>".format(doelgroep))
+            # Empty cell to the right
+            lHtml.append("<td align=\"right\"><span></span></td>")
+            lHtml.append("</tr>")
+            # Set the new doelgroepid
+            doelgroepid = nodeid
+            # make sure nodeid gets adapted
+            nodeid += 1
+        # Any change in geslacht must be duly noted
+        if bLevelDoelgroep or bLevelGeslacht:
+            lHtml.append("<tr nodeid=\"{}\" childof=\"{}\" class=\"hidden\">".format(nodeid, doelgroepid))
+            # Add an empty space 
+            lHtml.append("<td class=\"arg-pre\" style=\"min-width: 20px;\"></td>")
+            # Add the plus sign
+            lHtml.append("<td class=\"arg-plus\" style=\"min-width: 20px;\" onclick=\"crpstudio.htable.plus_click(this, 'func-inline');\">+</td>")
+            # Add the remainder taking 2 columns together
+            lHtml.append("<td class=\"arg-text\" colspan=\"2\" style=\"width: 100%;\"><span class=\"arg-line\"><code>{}</code></span></td>".format(geslacht))
+            # Empty cell to the right
+            lHtml.append("<td align=\"right\"><span></span></td>")
+            lHtml.append("</tr>")
+            # Set the new geslachtid
+            geslachtid = nodeid
+            # make sure nodeid gets adapted
+            nodeid += 1
+        # All cases: add an emperor's name
+        lHtml.append("<tr nodeid=\"{}\" childof=\"{}\" class=\"hidden\">".format(nodeid, geslachtid))
+        # Add empty space
+        lHtml.append("<td class=\"arg-pre\" colspan=\"2\" style=\"min-width: 40px;\"></td>")
+        # Add empty block
+        lHtml.append("<td class=\"arg-plus\" style=\"min-width: 20px;\"></td>")
+        # Add emperor's name
+        lHtml.append("<td class=\"arg-text\" style=\"width: 100%;\"><span class=\"arg-endnode\">{}</span></td>".format(naam))
+        # Clickable cell to the right
+        lHtml.append("<td align=\"right\"><a {}>{}</a></td>".format(anchor_tekst, volgnummer))
+        # Finish the line
+        lHtml.append("</tr>")
+
+        # Combine into one string
+        sItem = "\n".join(lHtml)
+
+        #sItem = "<tr><td>{}</td><td>{}</td><td>{}</td><td align='center'><a {}>{}</a></td></tr>".format(
+        #    doelgroep, geslacht, naam, anchor_tekst, volgnummer)
         lstE.append(sItem)
     # Return the combination
     return "\n".join(lstE)

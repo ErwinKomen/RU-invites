@@ -839,6 +839,16 @@ td.arg-text:hover {
   color: darkred;
   /* cursor: pointer; */
 }
+tbody tr.selected td.arg-text {
+  background-color: lightyellow;
+  color: darkblue;
+}
+
+tbody tr.selected td.arg-text:hover {
+  background-color: darkgreen;
+  color: white;
+}
+
 td.arg-text .arg-endnode {
   color: black;
   background-color: lightgray;
