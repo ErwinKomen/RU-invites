@@ -12,6 +12,7 @@ var ru = (function ($, ru) {
         streaming = false,
         loc_errDiv = "#error_messages",
         loc_keizerkeuze = 0,
+        loc_interrupt = false,
         mediaOptions = { audio: false, video: true},
         video = document.querySelector('#web_video'),
         canvas = document.querySelector('#web_canvas'),
@@ -22,6 +23,7 @@ var ru = (function ($, ru) {
         width = 400,
         height = 0,
         imgcount = 0,
+        loc_stage = "",
         button_list = null;
 
     var private_methods = {
@@ -124,9 +126,19 @@ var ru = (function ($, ru) {
       load_stage: function (ajaxurl, data, func_next) {
         try {
           $.post(ajaxurl, data, function (response) {
-            var oResponse = null;
+            var iStop = false,
+                oResponse = null;
+            // Check for interrupt
+            if (loc_interrupt && ajaxurl.indexOf("post_mix") >=0) {
+              loc_interrupt = false;
+              return;
+            }
+            // Debugging
+            if (ajaxurl.indexOf("post_start") >= 0) {
+              iStop = false;
+            }
             // Sanity check
-            if (response !== undefined) {
+            if (response !== undefined ) {
               oResponse = JSON.parse(response);
               if (oResponse['status'] == "ok") {
                 if ('html' in oResponse) {
@@ -224,71 +236,6 @@ var ru = (function ($, ru) {
               }
             });
 
-
-
-            /*
-            // Some necessary methods
-            navigator.getMedia = (navigator.getUserMedia ||
-              navigator.webkitGetUserMedia ||
-              navigator.mozGetUserMedia ||
-              navigator.msGetUserMedia);
-
-            // Only continue if we have it
-            if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
-              navigator.mediaDevices.getUserMedia(
-                // Specify what to show and hear
-                { video: true, audio: false })
-                // Specify what to do when conditions are met
-                .then(function (stream) {
-                  // video.srcObject = stream;
-                  if (navigator.mozGetUserMedia) {
-                    video.mozSrcObject = stream;
-                    video.srcObject = stream;
-                    video.src = window.URL.createObjectURL(stream);
-                  } else {
-                    var vendorURL = window.URL || window.webkitURL;
-                    video.src = vendorURL.createObjectURL(stream);
-                  }
-                  // Make sure the video starts playing
-                  video.play();
-                })
-                // Specify what to do when an exception occurs
-                .catch( function (err) {
-                  console.log("An error occured! " + err);
-                  private_methods.showError("getMedia", err);
-              });
-
-
-              //navigator.getMedia(
-              //  { video: true, audio: false },
-              //  function (stream) {
-              //    if (navigator.mozGetUserMedia) {
-              //      video.mozSrcObject = stream;
-              //    } else {
-              //      var vendorURL = window.URL || window.webkitURL;
-              //      video.src = vendorURL.createObjectURL(stream);
-              //    }
-              //    video.play();
-              //  },
-              //  function (err) {
-              //    console.log("An error occured! " + err);
-              //  }
-              //);
-            }
-
-            //video.addEventListener('canplay', function (ev) {
-            //  if (!streaming) {
-            //    height = video.videoHeight / (video.videoWidth / width);
-            //    video.setAttribute('width', width);
-            //    video.setAttribute('height', height);
-            //    canvas.setAttribute('width', width);
-            //    canvas.setAttribute('height', height);
-            //    streaming = true;
-            //  }
-            //}, false);
-
-            */
-
             break;
           case 2:
             if (slider == null) slider = document.querySelector("#slide_range");
@@ -381,13 +328,24 @@ var ru = (function ($, ru) {
             }
           }
 
+          // Keep track of the stage (to see if the user presses "Start again")
+          // Note: removed  || loc_stage === "picture"
+          if (sStage === "start" && (loc_stage === "mix")) {
+            // The user has pressed "Start again" midway...
+            loc_interrupt = true;
+          } else {
+            loc_interrupt = false;
+          }
+          loc_stage = sStage;
+
           // Action depends on the stage
           switch (sStage) {
             case "start": // Opening screen
               // Make sure initialization happens (again)
               ru.invites.init_events(1);
-              // Make sure the buttons are visible
+              // Make sure the buttons are visible and enabled
               $(butMain).removeClass("hidden");
+              $(butMain).removeClass("disabled");
               // Load the correct information
               private_methods.load_stage("/post_start", data, function () {
                 // Make sure a new image count is fetched
@@ -395,12 +353,22 @@ var ru = (function ($, ru) {
               });
               break;
             case "picture":
+              // For now inactivate the main button
+              $(butMain).addClass("disabled");
               // Make sure we get the right image count
               private_methods.get_imgcount(function () {
+                // Check if stage hasn't changed
+                if (loc_stage !== "picture") { return; }
                 // Snap the picture right now
                 ru.invites.handle_picture(imgcount, function () {
+                  // Check if stage hasn't changed
+                  if (loc_stage !== "picture") { return; }
                   // Load the next page with this picture upon success
                   private_methods.load_stage("/post_picture", data, function () {
+                    // Check if stage hasn't changed
+                    if (loc_stage !== "picture") { return; }
+                    // Next button is not disabled any longer
+                    $(butMain).removeClass("disabled");
                     // Hide the 'next' button until the user has chosen an emperor
                     $(butMain).addClass("hidden");
                   });
@@ -410,18 +378,30 @@ var ru = (function ($, ru) {
             case "choose":
               // Make sure the buttons are visible
               $(butMain).removeClass("hidden");
+              // For now inactivate the main button
+              $(butMain).addClass("disabled");
               // Set the chosen emperor
               data.push({ "name": "id", "value": loc_keizerkeuze});
               // Load the correct page 
-              private_methods.load_stage("/post_choose", data);
+              private_methods.load_stage("/post_choose", data, function () {
+                // Next button is not disabled any longer
+                $(butMain).removeClass("disabled");
+              });
               break;
             case "mix":
               // Make sure the buttons are visible
               $(butMain).removeClass("hidden");
+              // For now inactivate the main button
+              $(butMain).addClass("disabled");
               // Start up a process to receive status feedback after a few milliseconds
-              setTimeout(function () { ru.invites.show_status(); }, 200);
+              setTimeout(function () { ru.invites.show_status("mix"); }, 200);
               // Start up the mixer: the facemorphing process
-              private_methods.load_stage("/post_mix", data);
+              private_methods.load_stage("/post_mix", data, function () {
+                // Next button is not disabled any longer
+                $(butMain).removeClass("disabled");
+                // Indicate that we are ready
+                loc_stage = "finished";
+              });
               break;
           }
 
@@ -430,74 +410,8 @@ var ru = (function ($, ru) {
         }
       },
 
-      /**
-       * plus_click
-       *   Show or hide the <tr> elements under me, using 'nodeid' and 'childof'
-       *   Also: 
-       *    - adapt the +/- sign(s)
-       *    - show the [arg-summary] part when sign is '+', otherwise hide it
-       */
-      plus_click: function (el, sClass, bShow) {
-        var trNext = null,
-            sStatus = "",
-            elSummary = null,
-            trMe = null,
-            nodeid = 0;
-
-        try {
-          // Validate
-          if (el === undefined) { return; }
-          if ($(el).html().trim() === "") { return; }
-          // Get my nodeid as INTEGER
-          trMe = $(el).closest("tr");
-          nodeid = $(trMe).attr("nodeid");
-          // Get my status
-          sStatus = $(el).html().trim();
-          if (bShow !== undefined && bShow === false) {
-            sStatus = "-";
-          }
-          // Get *ALL* the <tr> elements that are my direct children
-          trNext = $(el).closest("tbody").find("tr");
-          $(trNext).each(function (index) {
-            if ($(this).attr("childof") === nodeid) {
-              if (sStatus === "+") {
-                // show it
-                $(this).removeClass("hidden");
-              } else {
-                // hide it
-                $(this).addClass("hidden");
-                // Hide children too
-                crpstudio.htable.plus_click($(this).find(".arg-plus").first(), loc_ht4, false);
-              }
-              if ($(this).hasClass("arg-grandchild")) {
-                // hide it
-                $(this).addClass("hidden");
-              }
-            }
-          });
-          // Find my own summary part
-          elSummary = $(el).nextAll(".arg-text").find(".arg-summary").first();
-          // Change my own status
-          switch (sStatus) {
-            case "+":
-              $(el).html("-");
-              // Hide the arg-summary
-              $(elSummary).addClass("hidden");
-              break;
-            case "-":
-              $(el).html("+");
-              // Show the arg-summary
-              $(elSummary).removeClass("hidden");
-              break;
-          }
-
-        } catch (ex) {
-          private_methods.showError("plus_click", ex);
-        }
-      },
-
       // Show the current status
-      show_status: function () {
+      show_status: function (sStage) {
         var elStatus = null,
             elProgress = null,
             elBar = null,
@@ -506,6 +420,8 @@ var ru = (function ($, ru) {
             lHtml = [];
 
         try {
+          // Check if the stage is still correct
+          if (sStage !== loc_stage) { return;}
           // Try to find the status div
           elStatus = $("#py_status");
           elProgress = $("#py_progress");
@@ -561,7 +477,7 @@ var ru = (function ($, ru) {
                     $(elBar).html(percentage.toString());
                     // Make sure progress bar is visible
                     $(elProgress).removeClass("hidden");
-                    setTimeout(function () { ru.invites.show_status(); }, 200);
+                    setTimeout(function () { ru.invites.show_status(sStage); }, 200);
                     break;
                 }
               }
