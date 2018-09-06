@@ -5,6 +5,8 @@ import json
 import base64
 import copy
 import math
+import time
+import datetime
 # The Radboud University adaptation of the facemorpher
 from ru_morpher import ru_morpher
 from utils import get_error_message, DoError, debugMsg
@@ -15,6 +17,11 @@ OUT_FRAMES = "static/tmp"
 STAT_FILE = "static/tmp/status.json"
 # Define conf
 conf = CONFIGURATION
+
+def get_current_time_as_string():
+    ts = time.time()
+    st = datetime.datetime.fromtimestamp(ts).strftime('%Y-%m-%d_%H%M%S')
+    return st
 
 def get_template(sLoc, include_init=0):
     """Get the template from the location and return its contents"""
@@ -421,8 +428,9 @@ class Root(object):
             for i in range(1,max_img + 1):
                 hidden = "" if i == show_img else " hidden"
                 imgnum = str(i).zfill(3)
-                sLine = "<img id=\"pic{}\" src=\"static/tmp/{}/frame{}.png\" title=\"{}/{}\" class=\"result-pic {}\" />".format(
-                    imgnum, self.session_idx, imgnum, i, max_img, hidden)
+                timestamp = get_current_time_as_string()
+                sLine = "<img id=\"pic{}\" src=\"static/tmp/{}/frame{}.png?{}\" title=\"{}/{}\" class=\"result-pic {}\" />".format(
+                    imgnum, self.session_idx, imgnum, i, timestamp, max_img, hidden)
                 lRes.append(sLine)
             sHtml = sHtml.replace("@results@", "\n".join(lRes))
             sHtml = sHtml.replace("@session_idx@", self.session_idx)
