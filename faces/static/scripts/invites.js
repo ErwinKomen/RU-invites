@@ -54,7 +54,13 @@ var ru = (function ($, ru) {
         return data;
       },
 
-      showError(sFunction, ex) {
+      clearError : function() {
+        if (loc_errDiv !== undefined && loc_errDiv !== null) {
+          $(loc_errDiv).html("");
+        }
+      },
+
+      showError: function(sFunction, ex) {
         var sMsg = "Error in " + sFunction
 
         // Check ex
@@ -123,7 +129,7 @@ var ru = (function ($, ru) {
       },
 
       // Trigger one particular stage and load the result
-      load_stage: function (ajaxurl, data, func_next) {
+      load_stage: function (ajaxurl, data, func_next, func_err) {
         try {
           $.post(ajaxurl, data, function (response) {
             var iStop = false,
@@ -153,6 +159,9 @@ var ru = (function ($, ru) {
                 }
               } else if (oResponse['status'] === "error") {
                 $(loc_errDiv).html(oResponse['html']);
+                if (func_err !== undefined) {
+                  func_err();
+                }
               } else {
                 $(loc_errDiv).html("Could not interpret response " + response.status);
               }
@@ -299,6 +308,54 @@ var ru = (function ($, ru) {
 
       },
 
+      // Send an email
+      send_mail: function (elStart) {
+        var frm = null,
+            img = null,
+            sEmail = "",
+            data = [];
+
+        try {
+          // Get to the closest form
+          frm = $(elStart).closest("form");
+          if (frm !== undefined && frm !== null) {
+            // Get the data from the form
+            // data = $(frm).serializeArray();
+            sEmail = $("#input_email").val();
+            data.push({"name": "input_email", "value": sEmail});
+            // Get the selected image
+            img = $(".result-pic").not("hidden").first();
+            // Add the image count
+            data.push({"name": "imgname", "value": $(img).attr("src")});
+            // Now call the correct post function with this data
+            $.post("/post_mail", data, function (response) {
+              var oResponse = null,
+                  sHtml = "";
+              // Sanity check
+              if (response !== undefined) {
+                oResponse = JSON.parse(response);
+                if ('status' in oResponse && 'msg' in oResponse) {
+                  switch (oResponse['status']) {
+                    case "ok":
+                    case "started":
+                      // Close the mail button
+                      $("#mailpic").click();
+                      // Open the mail message
+                      $("#mail_msg").html("De foto is verzonden naar: " + sEmail);
+                      break;
+                    case "error":
+                      break;
+                  }
+                }
+              }
+
+            });
+          }
+        } catch (ex) {
+          private_methods.showError("send_mail", ex);
+        }
+      },
+
       // Initialise the indicated stage
       init_stage: function (sStage) {
         var i = 1,
@@ -306,6 +363,8 @@ var ru = (function ($, ru) {
             oInfo = null;
 
         try {
+          // Initially clear the errors
+          private_methods.clearError();
           console.log("init_stage " + sStage + ": " + imgcount.toString());
           // Find the indicated stage
           for (i = 0; i < button_list.length - 1; i++) {
@@ -364,14 +423,23 @@ var ru = (function ($, ru) {
                   // Check if stage hasn't changed
                   if (loc_stage !== "picture") { return; }
                   // Load the next page with this picture upon success
-                  private_methods.load_stage("/post_picture", data, function () {
-                    // Check if stage hasn't changed
-                    if (loc_stage !== "picture") { return; }
-                    // Next button is not disabled any longer
-                    $(butMain).removeClass("disabled");
-                    // Hide the 'next' button until the user has chosen an emperor
-                    $(butMain).addClass("hidden");
-                  });
+                  private_methods.load_stage("/post_picture", data, 
+                    function () {
+                      // Check if stage hasn't changed
+                      if (loc_stage !== "picture") { return; }
+                      // Next button is not disabled any longer
+                      $(butMain).removeClass("disabled");
+                      // Hide the 'next' button until the user has chosen an emperor
+                      $(butMain).addClass("hidden");
+                    },
+                    // Function if there is an error
+                    function () {
+                      // Make sure my image is not shown anymore
+                      $("#user_image").addClass("hidden");
+                      // Reveal the button
+                      $("#startagain").removeClass("hidden");
+                    }
+                  );
                 });
               });
               break;
@@ -396,12 +464,24 @@ var ru = (function ($, ru) {
               // Start up a process to receive status feedback after a few milliseconds
               setTimeout(function () { ru.invites.show_status("mix"); }, 200);
               // Start up the mixer: the facemorphing process
-              private_methods.load_stage("/post_mix", data, function () {
-                // Next button is not disabled any longer
-                $(butMain).removeClass("disabled");
-                // Indicate that we are ready
-                loc_stage = "finished";
-              });
+              private_methods.load_stage("/post_mix", data,
+                // Function if success
+                function () {
+                  // Next button is not disabled any longer
+                  $(butMain).removeClass("disabled");
+                  // Indicate that we are ready
+                  loc_stage = "finished";
+                },
+                // Function if there is an error
+                function () {
+                  // Disable the progress bar
+                  $("#py_progress").addClass("hidden");
+                  // Make sure my image is not shown anymore
+                  $("#user_image").addClass("hidden");
+                  // Reveal the button
+                  $("#startagain").removeClass("hidden");
+                }
+              );
               break;
           }
 

@@ -8,7 +8,7 @@ import math
 import time
 import datetime
 # The Radboud University adaptation of the facemorpher
-from ru_morpher import ru_morpher
+from ru_morpher import ru_morpher, check_for_image_points
 from utils import get_error_message, DoError, debugMsg
 
 from settings import CONFIGURATION, SERVE_PORT, KEIZER_BASE, KEIZERS
@@ -340,6 +340,20 @@ class Root(object):
         return json.dumps(oStatus)
 
     @cherrypy.expose
+    def post_mail(self, input_email, imgname):
+        debugMsg("post_mail #1")
+        oResponse = {'status': 'started', 'msg': ''}
+        # Get the parameters
+        address = input_email
+        idx = imgname.find("?")
+        if idx >= 0:
+            imgname = imgname[:idx]
+        # Try to send this to the indicated email address
+
+        # Return the response
+        return json.dumps(oResponse)
+
+    @cherrypy.expose
     def post_picture(self):
         """While showing the culprit's image, let him choose an emperor"""
 
@@ -348,6 +362,10 @@ class Root(object):
 
         # Retrieve the currently existing image
         img_name = get_picture_name(self.counter)
+
+        # Check whether the image contains points
+        bHasPoints = check_for_image_points(img_name)
+
         # Load the 'picture' template - this shows the resulting picture
         sHtml = get_template_unit(self.template_post_pictu).replace("@img_name@", img_name)     
         # Put in the list of emperors
@@ -356,9 +374,13 @@ class Root(object):
         # Set the status
         self.set_status("picture", "img_name={}".format(img_name))
 
-        # Respond appropriately
-        oBack['status'] = "ok"
-        oBack['html'] = sHtml
+        if bHasPoints:
+            # Respond appropriately
+            oBack['status'] = "ok"
+            oBack['html'] = sHtml
+        else:
+            oBack['html'] = "Ik kan uw gezicht niet herkennen in dit beeld"
+
         return json.dumps(oBack)
 
     @cherrypy.expose
@@ -419,8 +441,19 @@ class Root(object):
             self.set_status("mix", "starting out_dir={}".format(out_dir))
 
             # Perform the morphing
-            ru_morpher(self.imgpaths, out_frames=out_dir, obj=self) # counter=self.counter, callback = self.mix_callback)
-
+            oMorph = ru_morpher(self.imgpaths, out_frames=out_dir, obj=self) # counter=self.counter, callback = self.mix_callback)
+            # Check the reply that we received
+            if oMorph['status'] == 'error':
+                # We are not okay -- show the user an error message
+                if 'msg' in oMorph:
+                    sMsg = oMorph['msg']
+                else:
+                    sMsg = "Sorry, er is iets fout gegaan. Probeer het opnieuw."
+                self.set_status("error", sMsg)
+                oBack['status'] = 'error'
+                oBack['html'] = sMsg
+                return json.dumps(oBack)
+            
             # Set the status
             self.set_status("mix", "creating page")
 
@@ -433,7 +466,7 @@ class Root(object):
                 imgnum = str(i).zfill(3)
                 timestamp = get_current_time_as_string()
                 sLine = "<img id=\"pic{}\" src=\"static/tmp/{}/frame{}.png?{}\" title=\"{}/{}\" class=\"result-pic {}\" />".format(
-                    imgnum, self.session_idx, imgnum, i, timestamp, max_img, hidden)
+                    imgnum, self.session_idx, imgnum, timestamp, i, max_img, hidden)
                 lRes.append(sLine)
             sHtml = sHtml.replace("@results@", "\n".join(lRes))
             sHtml = sHtml.replace("@session_idx@", self.session_idx)

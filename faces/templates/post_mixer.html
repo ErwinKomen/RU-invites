@@ -1,30 +1,60 @@
 ﻿
       <div class="col-md-6 bgimg">
-        <h2>Mixer</h2>
-        <div class="slidecontainer">
+        <h2>
+          <span>Mixer</span>
+        </h2>
+        <div class="slidecontainer" id="slide_mixer">
           <input type="range" min="1" max="18" value="9" 
                  class="slider" 
                  oninput="ru.invites.update_mixer(this, '@session_idx@');"
                  id="slide_range" />
         </div>
         <div id="testpic"></div>
-        <div class="result-pic-container" id="result-pic">
+        <div class="result-pic-container" id="result_pictures">
          @results@
         </div>
       </div>
       <div class="col-md-6">
-        <h2>Achtergrond</h2>
-        <p>
-          Deze app is ontwikkeld door de Technische Service Groep van de Letterenfacultaat van de Radboud Universiteit Nijmegen.
-          Wij staan u graag ten dienste met onze wetenschappelijke programmeerkennis.
-          Of het nu gaat om even meekijken en adviseren bij uw eigen pogingen of het zorgen voor complexe oplossingen in uw onderzoek - 
-          wij willen met alle plezier helpen.
-        </p>
-        <a href="https://www.ru.nl/nieuws-agenda/radboud-lustrum/radboud-invites/" target="_blank">
-          <img src="static/content/invites_faces.png"
-               alt="De TSG"
-               title="Radboud Invites"
-               style="width:500px;z-index:-2" />
-        </a>
+        <div>
+          <span class="pull-right collapsed" data-toggle="collapse" data-target="#mail_info">
+            <a id="mailpic"
+               class="btn btn-warning"
+               title="Opsturen">Mail dit beeld naar...</a>
+          </span>
+        </div>
+        <!-- Mail information becomes visible when ready -->
+        <div id="mail_info" class="panel panel-default collapse">
+          <form action="" method="post">
+            <div class="form-group">
+              <label for="input_email">Mailadres</label>
+              <input type="email" class="form-control" id="input_email" area-describedby="emailHelp" placeholder="Voer hier je e-mail in" />
+              <small id="emailHelp" class="form-text text-muted">We houden jouw mailadres <em>niet</em> vast hier op de server, en ook deze afbeelding niet.</small>
+            </div>
+            <div>
+              <a role="button" 
+                 class="btn btn-success" 
+                 onclick="ru.invites.send_mail(this);">Versturen</a>
+            </div>
+          </form>
+        </div>
+        <div id="mail_msg"><!-- Provide a feedback message on the mail here--></div>
+        <h2>
+          <span>Achtergrond</span>
+        </h2>
+        <div id="background_info">
+          <p>
+            Deze app is ontwikkeld door de Technische Service Groep van de Letterenfacultaat van de Radboud Universiteit Nijmegen.
+            Wij staan u graag ten dienste met onze wetenschappelijke programmeerkennis.
+            Of het nu gaat om even meekijken en adviseren bij uw eigen pogingen of het zorgen voor complexe oplossingen in uw onderzoek -
+            wij willen met alle plezier helpen.
+          </p>
+          <a href="https://www.ru.nl/nieuws-agenda/radboud-lustrum/radboud-invites/" target="_blank">
+            <img src="static/content/invites_faces.png"
+                 alt="De TSG"
+                 title="Radboud Invites"
+                 style="width:500px;z-index:-2" />
+          </a>
+
+        </div>
       </div>
  

@@ -11,6 +11,15 @@
           </div>
         </div>
 
+
+        <!-- Provide a start again button -->
+        <div id="startagain" class="hidden">
+          <p>Uw gezicht kan <code>niet</code> herkend worden. Maak een nieuw beeld.</p>
+          <a class="btn btn-danger"
+             onclick="ru.invites.init_stage('start');"
+             title="Overnieuw">Begin opnieuw</a>
+        </div>
+
         <div name="webcam" >
           <video id="web_video" autoplay="autoplay" style="width:100%;"></video>
           <!-- Use a hidden canvas -->

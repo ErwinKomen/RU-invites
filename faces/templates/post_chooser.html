@@ -1,7 +1,8 @@
 ﻿      <div class="col-md-6 bgimg">
         <h2>Uw foto</h2>
         <div id="py_progress" class="progress hidden">
-          <div class="progress-bar progress-bar-success" role="progressbar" aria-valuenow="0"
+          <div class="progress-bar progress-bar-success" 
+               role="progressbar" aria-valuenow="0"
                aria-valuemin="0" aria-valuemax="100" style="width:0%;">
             <!-- this is where the value comes -->
           </div>
@@ -10,6 +11,13 @@
         <div id="user_image">
           <!-- Hier komt dan een picture?? -->
           <img src="@img_self@" alt="Geen beeld gevonden" title="Uw eigen foto" />
+        </div>
+        <!-- Provide a start again button -->
+        <div id="startagain" class="hidden">
+          <p>Het gezicht van dit keizerbeeld kan <code>niet</code> herkend worden. Kies een andere keizer.</p>
+          <a class="btn btn-danger"
+             onclick="ru.invites.init_stage('start');"
+             title="Overnieuw">Begin opnieuw</a>
         </div>
       </div>
       <div class="col-md-6">

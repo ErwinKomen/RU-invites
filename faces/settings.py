@@ -46,7 +46,7 @@ KEIZERS = [
     {"id": 27, "doel": "volwassene", "geslacht": "v", "naam": "Julia Domna", "file": "12967516504_2957644b42_o.jpg"},
     {"id": 28, "doel": "volwassene", "geslacht": "v", "naam": "Livia", "file": "12949093165_46b0a2e7ef_o.jpg"},
     {"id": 29, "doel": "volwassene", "geslacht": "v", "naam": "Livia", "file": "21784811235_47e3cd0a95_o.jpg"},
-    {"id": 30, "doel": "volwassene", "geslacht": "v", "naam": "Salonina Matidia", "file": "16753427981_02d43240e0_o.jpg"},
-    {"id": 31, "doel": "volwassene", "geslacht": "v", "naam": "Salonina Matidia", "file": "23900123136_64f90747e3_o.jpg"},
+    {"id": 30, "doel": "volwassene", "geslacht": "v", "naam": "Vibia Sabina", "file": "12972132095_ff4aeb7533_o.jpg"},
+    {"id": 31, "doel": "volwassene", "geslacht": "v", "naam": "Vibia Sabina", "file": "12453693294_9a70e3ac15_o.jpg"},
 
     ]

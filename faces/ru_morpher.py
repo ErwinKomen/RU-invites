@@ -24,6 +24,12 @@ from facemorpher import videoer
 # RU-specific imports
 from utils import get_error_message, DoError, debugMsg
 
+
+def check_for_image_points(path):
+    img = cv2.imread(path)
+    points = locator.face_points(img)
+    return (len(points) > 0)
+
 def load_image_points(path, size):
     img = cv2.imread(path)
     points = locator.face_points(img)
@@ -107,7 +113,7 @@ def ru_morpher(imgpaths, width=500, height=600, num_frames=20, fps=10, \
     :param imgpaths: array or generator of image paths
     :param callback: callback function on each point
     """
-
+    oBack = {'status': 'ok', 'msg': ''}
     try:
         video = videoer.Video(out_video, fps, width, height)
         images_points_gen = load_valid_image_points(imgpaths, (height, width))
@@ -125,8 +131,22 @@ def ru_morpher(imgpaths, width=500, height=600, num_frames=20, fps=10, \
             src_img, src_points = dest_img, dest_points
 
             iStep += 1
+
+        # Check if any faces could be found in the image
+        if iStep == 0:
+            # This means that the points could not be found on the image
+            print('debug point #3 in: ru_morpher')
+            # No points were found
+            oBack['status'] = "error"
+            oBack['msg'] = "Er kan geen gezicht gevonden worden in dit beeld"
+            debugMsg(oBack['msg'])
+
         debugMsg("ru_morpher video.end")
-        video.end()
+        video.end()        
     except:
-        sHtml = get_error_message()
+        sMsg = get_error_message()
         DoError("ru_morpher: ")
+        oBack['status'] = 'error'
+        oBack['msg'] = sMsg
+    finally:
+        return oBack
