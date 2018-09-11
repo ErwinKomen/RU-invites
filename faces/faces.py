@@ -7,6 +7,7 @@ import copy
 import math
 import time
 import datetime
+import smtplib      # Allow sending mail
 # The Radboud University adaptation of the facemorpher
 from ru_morpher import ru_morpher, check_for_image_points
 from utils import get_error_message, DoError, debugMsg
@@ -341,14 +342,74 @@ class Root(object):
 
     @cherrypy.expose
     def post_mail(self, input_email, imgname):
+        """Send an email with the image as attachment to the indicated address.
+
+        Code idea taken from: https://www.tutorialspoint.com/python/python_sending_email.htm
+        """
+
         debugMsg("post_mail #1")
         oResponse = {'status': 'started', 'msg': ''}
-        # Get the parameters
-        address = input_email
+        filename = "radboud_keizerbeeld.png"
+
+        # Possibly adapt the image name
+        print("Image = [{}]".format(imgname))
         idx = imgname.find("?")
         if idx >= 0:
             imgname = imgname[:idx]
-        # Try to send this to the indicated email address
+        # Load the image
+        encoded = "EMPTY"
+        with open(imgname, "rb") as fo:
+            contents = fo.read()
+            # Encode and return the encoded BYTES
+            encoded = base64.b64encode(contents)    # Base-64 encode the image
+            # Convert each byte to an appropriate string character
+            encoded = encoded.decode()
+
+        # Prepare the fields
+        mail_from = "ekomen@science.ru.nl"
+        mail_to = input_email
+        subject = "Radboud - keizerbeeld"
+        boundary_marker = "RADBOUD_INVITES_MARKER_OF_MAIL"
+
+        # Create header and mail
+        lMail = []
+        lMail.append("From: {}".format(mail_from))
+        lMail.append("To: {}".format(mail_to))
+        lMail.append("Subject: {}".format(subject))
+        lMail.append("MIME-Version: 1.0")
+        lMail.append("Content-Type: multipart/mixed; boundary={}".format(boundary_marker))
+        lMail.append("--{}".format(boundary_marker))
+        lMail.append("Content-Type: text/plain")
+        lMail.append("Content-Transfer-Encoding:8bit")
+        lMail.append("")
+        lMail.append("Hierbij uw keizerbeeld {}".format(imgname))
+        lMail.append("--{}".format(boundary_marker))
+        lMail.append("Content-Type: multipart/mixed; name=\"{}\"".format(filename))
+        lMail.append("Content-Transfer-Encoding:base64")
+        lMail.append("Content-Disposition: attachment; filename={}".format(filename))
+        lMail.append("")
+        lMail.append(encoded)
+        lMail.append("--{}--".format(boundary_marker))
+        #hdr = "From: {}\r\nTo: {}\r\nSubject: {}\r\n\r\n".format(mail_from, mail_to, subject)
+        ##body = "Dit is een bericht over beeld {}".format(imgname)
+        ## ========= DEBUG ====
+        #debugMsg(hdr)
+        ## ====================
+
+        # Combine the message
+        message = "\n".join(lMail)
+
+        try:
+            # Try to send this to the indicated email address
+            smtpObj = smtplib.SMTP('localhost', 25)
+            smtpObj.sendmail(mail_from, mail_to, message)
+            smtpObj.quit()
+            debugMsg("post_mail #2")
+        except:
+            sMsg = get_error_message()
+            oResponse['status'] = "error"
+            oResponse['msg'] = "Sorry, de mail kon niet verzonden worden ({})".format(sMsg)
+            debugMsg("post_mail #3")
 
         # Return the response
         return json.dumps(oResponse)

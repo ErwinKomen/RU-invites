@@ -324,7 +324,7 @@ var ru = (function ($, ru) {
             sEmail = $("#input_email").val();
             data.push({"name": "input_email", "value": sEmail});
             // Get the selected image
-            img = $(".result-pic").not("hidden").first();
+            img = $(".result-pic").not(".hidden").first();
             // Add the image count
             data.push({"name": "imgname", "value": $(img).attr("src")});
             // Now call the correct post function with this data
@@ -341,7 +341,11 @@ var ru = (function ($, ru) {
                       // Close the mail button
                       $("#mailpic").click();
                       // Open the mail message
-                      $("#mail_msg").html("De foto is verzonden naar: " + sEmail);
+                      $("#mail_msg").html("De foto is verzonden naar: <code>" + sEmail + "</code>");
+                      // Remove the mail address
+                      $("#input_email").val("");
+                      // Fade out: after 5 seconds, take 3 seconds to gradually fade out
+                      $("#mail_msg").delay(5000).fadeOut(3000);
                       break;
                     case "error":
                       break;
