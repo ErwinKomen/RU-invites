@@ -1,6 +1,6 @@
 import cherrypy
 import io, os, sys
-import cv2
+import cv2, re
 import json
 import base64
 import copy
@@ -8,6 +8,7 @@ import math
 import time
 import datetime
 import smtplib      # Allow sending mail
+import csv
 # The Radboud University adaptation of the facemorpher
 from ru_morpher import ru_morpher, check_for_image_points
 from utils import get_error_message, DoError, debugMsg
@@ -187,6 +188,22 @@ def keizer_image(idx):
     bestand = oKeizer['file']
     img_name = "{}/{}{}{}/{}".format(KEIZER_BASE, doel, geslacht, naam, bestand)
     return img_name
+
+def treat_bom(sHtml):
+    """REmove the BOM marker except at the beginning of the string"""
+
+    # Check if it is in the beginning
+    bStartsWithBom = sHtml.startswith(u'\ufeff')
+    # Remove everywhere
+    sHtml = sHtml.replace(u'\ufeff', '')
+    # Return what we have
+    return sHtml
+
+def is_number(sText):
+    if re.match("^\d+$", sText) is None:
+        return False
+    else:
+        return True
 
 
 # @cherrypy.expose
@@ -541,7 +558,68 @@ class Root(object):
         # Respond appropriately
         oBack['html'] = sHtml
         return json.dumps(oBack)
-    
+
+    @cherrypy.expose
+    def aanmaken_van_json(self):
+        """This is the method to create JSON from possibly present CSV files"""
+
+        print("aanmaken van json wordt aangeroepen", file=sys.stderr)
+        lQuestions = []
+        lAnswers = []
+        lKeizers = []
+        lInput = [{'file': 'quiz_vragen', 'obj': lQuestions},
+                  {'file': 'quiz_antwoorden', 'obj': lAnswers},
+                  {'file': 'quiz_keizers', 'obj': lKeizers}]
+        for oInput in lInput:
+            # Debugging
+            print("Debugging. File: {}".format(oInput['file']), file=sys.stderr)
+            # Determine the file location
+            file = os.path.abspath(os.path.join(self.out_frames, oInput['file'] + '.txt'))
+            print("Looking for file: {}".format(file), file=sys.stderr)
+            # Read the file as CSV
+            if os.path.exists(file):
+                print("Starting CSV from: {}".format(file), file=sys.stderr)
+                with open(file, 'r') as csvfile:
+                    myreader = csv.reader(csvfile, delimiter='\t')
+                    mylist = oInput['obj']
+                    # Read the header
+                    header = next(myreader)
+                    # Look for BOM
+                    if header[0].startswith(u'\ufeff'):
+                        header[0] = header[0].replace(u'\ufeff', '')
+                    # Read the remaining rows
+                    for row in myreader:
+                        oItem = {}
+                        for idx, cell in enumerate(row):
+                            if is_number(cell):
+                                cell = int(cell)
+                            oItem[header[idx]] = cell
+                        mylist.append(oItem)
+                print("Finished CSV from: {}".format(file), file=sys.stderr)
+
+                # If these are answers: adapt the list
+                if oInput['file'] == 'quiz_antwoorden':
+                    for iAnswer, oAnswer in enumerate(mylist):
+                        # Get the string list of emperor abbreviations
+                        sKeizers = oAnswer['keizer_lijst']
+                        # Remove brackets
+                        sKeizers = sKeizers.replace("[", "").replace("]", "")
+                        # Turn into list
+                        lKeizers = sKeizers.split(",")
+                        # Make sure spaces are stripped
+                        for idx, keizer in enumerate(lKeizers):
+                            lKeizers[idx] = keizer.strip()
+                        mylist[iAnswer]['keizer_lijst'] = lKeizers
+
+                # Write the output as json
+                file = file.replace(".txt", ".json")
+                with open(file, "w") as jsonfile:
+                    json.dump(mylist, jsonfile)
+                print("Written JSON to: {}".format(file), file=sys.stderr)
+        # Load the 'root' template
+        sHtml = get_template(self.template_index, 1).replace("@img_count@", self.session_idx)
+        sHtml = sHtml.replace("@post_start@", get_template_unit(self.template_post_start))
+        return sHtml
 
 
    
