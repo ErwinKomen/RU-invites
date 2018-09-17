@@ -13,6 +13,7 @@ var ru = (function ($, ru) {
         loc_errDiv = "#error_messages",
         loc_keizerkeuze = 0,
         loc_interrupt = false,
+        loc_answers = [],
         mediaOptions = { audio: false, video: true},
         video = document.querySelector('#web_video'),
         canvas = document.querySelector('#web_canvas'),
@@ -415,6 +416,40 @@ var ru = (function ($, ru) {
                 private_methods.get_imgcount();
               });
               break;
+            case "quiz":
+              // For now inactivate the main button
+              $(butMain).addClass("disabled");
+              // Make sure we get the right image count
+              private_methods.get_imgcount(function () {
+                // Check if stage hasn't changed
+                if (loc_stage !== "quiz") { return; }
+                // Snap the picture right now
+                ru.invites.handle_picture(imgcount, function () {
+                  // Check if stage hasn't changed
+                  if (loc_stage !== "quiz") { return; }
+                  // Load the next page with this picture upon success
+                  private_methods.load_stage("/post_quiz", data,
+                    function () {
+                      // Check if stage hasn't changed
+                      if (loc_stage !== "quiz") { return; }
+                      // Next button is not disabled any longer
+                      $(butMain).removeClass("disabled");
+                      // Hide the 'next' button until the user has chosen an emperor
+                      $(butMain).addClass("hidden");
+                      // Reset the answers
+                      loc_answers = [];
+                    },
+                    // Function if there is an error
+                    function () {
+                      // Make sure my image is not shown anymore
+                      $("#user_image").addClass("hidden");
+                      // Reveal the button
+                      $("#startagain").removeClass("hidden");
+                    }
+                  );
+                });
+              });
+              break;
             case "picture":
               // For now inactivate the main button
               $(butMain).addClass("disabled");
@@ -453,7 +488,9 @@ var ru = (function ($, ru) {
               // For now inactivate the main button
               $(butMain).addClass("disabled");
               // Set the chosen emperor
-              data.push({ "name": "id", "value": loc_keizerkeuze});
+              data.push({ "name": "id", "value": loc_keizerkeuze });
+              // Set the list of q/a
+              data.push({ "name": "qalist", "value": JSON.stringify( loc_answers) });
               // Load the correct page 
               private_methods.load_stage("/post_choose", data, function () {
                 // Next button is not disabled any longer
@@ -653,6 +690,67 @@ var ru = (function ($, ru) {
           private_methods.showError("set_keizer", ex);
         }
         
+      },
+
+      // Select the indicated reply to the emperor-question
+      set_answer: function (el, id_q, max_q, id_a, sAnswer) {
+        var elRow = null,       // Current row
+            elQuestion = null,  // Row of the question
+            elNext = null,      // Row of next question
+            bAll = true,       // All answered
+            sLabel = "",
+            id = 0,
+            elTable = null;     // The whole table
+
+        try {
+          // Get the row and the table
+          if (el !== undefined) {
+            elRow = $(el).closest("tr");
+            elTable = $(el).closest("tbody");
+
+            // Change the style of this one row
+            $(elTable).find("tr").removeClass("selected");
+            $(elRow).addClass("selected");
+
+            // Get my reply and position it next to the question
+            elQuestion = $(elTable).find("#que_ans_" + id_q).first();
+            $(elQuestion).html(sAnswer);
+
+            // Close this current question
+            $(elQuestion).closest("tr").find("td").first().click();
+
+            // Open the next question
+            elNext = $(elTable).find("#que_ans_" + (id_q + 1)).first();
+            if (elNext.length !== 0 && $(elNext).html() === "") {
+              // Open this question
+              $(elNext).closest("tr").find("td").first().click();
+            } else {
+              // Check if everything has been answered
+              loc_answers = [];
+              for (id = 1; id <= max_q; id++) {
+                elQuestion = $(elTable).find("#que_ans_" + id).first();
+                sLabel = $(elQuestion).html();
+                if (sLabel === "") {
+                  bAll = false;
+                  break;
+                }
+                // Add question/answer
+                loc_answers.push({"vraag_id": id, "nummer": sLabel });
+              }
+              if (bAll) {
+                // All questions have been answered
+                // Make sure the main button is available again
+                $(butMain).removeClass("hidden");
+                $(butMain).html("Laat maar zien");
+                // Signal the chosen emperor to the host
+                // loc_keizerkeuze = idx;
+              }
+            }
+
+          }
+        } catch (ex) {
+          private_methods.showError("set_answer", ex);
+        }
       }
 
     }

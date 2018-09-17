@@ -66,6 +66,7 @@
     <Content Include="static\content\tree_example.png" />
     <Content Include="static\scripts\crpstudio.htable.js" />
     <Content Include="static\scripts\invites.js" />
+    <Content Include="templates\post_quiz.html" />
     <Content Include="templates\post_start.html" />
     <Content Include="templates\post_mixer.html" />
     <Content Include="templates\post_chooser.html" />

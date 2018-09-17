@@ -1,0 +1,28 @@
+﻿      <div class="col-md-6 bgimg">
+        <h2>Uw foto</h2>
+        <!-- Provide a start again button -->
+        <div id="startagain" class="hidden">
+          <p>Uw gezicht kan <code>niet</code> herkend worden. Maak een nieuw beeld.</p>
+          <a class="btn btn-danger"
+             onclick="ru.invites.init_stage('start');"
+             title="Overnieuw">Begin opnieuw</a>
+        </div>
+        <div id="user_image">
+          <!-- Hier komt dan een picture?? -->
+          <img src="@img_name@" alt="Geen beeld gevonden" title="Uw eigen foto" />
+        </div>
+      </div>
+      <div class="col-md-6">
+        <h2>De keizerquiz</h2>
+          <table class="func-view">
+            <thead>
+              <tr>
+                <th></th>
+                <th colspan="3">Vragen en antwoorden</th>
+              </tr>
+            </thead>
+            <tbody>
+              @quiz_list@
+            </tbody>
+          </table>
+      </div>

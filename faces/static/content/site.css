@@ -1047,3 +1047,10 @@ table tr.selected:hover {
   border: 1px solid darkred;
 }
 
+.emp_name {
+  color: darkblue;
+  font-weight: bold;
+}
+.emp_score {
+  color: red;
+}
