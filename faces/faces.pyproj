@@ -63,9 +63,26 @@
   </ItemGroup>
   <ItemGroup>
     <Content Include="app.conf" />
-    <Content Include="static\content\tree_example.png" />
+    <Content Include="static\content\aug-1.jpg" />
+    <Content Include="static\content\aug-2.jpg" />
+    <Content Include="static\content\invites_faces.png" />
     <Content Include="static\scripts\crpstudio.htable.js" />
     <Content Include="static\scripts\invites.js" />
+    <Content Include="templates\keizer_agr.html" />
+    <Content Include="templates\keizer_jul.html" />
+    <Content Include="templates\keizer_fau.html" />
+    <Content Include="templates\keizer_ant.html" />
+    <Content Include="templates\keizer_liv.html" />
+    <Content Include="templates\keizer_con.html" />
+    <Content Include="templates\keizer_car.html" />
+    <Content Include="templates\keizer_vib.html" />
+    <Content Include="templates\keizer_sep.html" />
+    <Content Include="templates\keizer_mar.html" />
+    <Content Include="templates\keizer_had.html" />
+    <Content Include="templates\keizer_ves.html" />
+    <Content Include="templates\keizer_ner.html" />
+    <Content Include="templates\keizer_cal.html" />
+    <Content Include="templates\keizer_aug.html" />
     <Content Include="templates\post_quiz.html" />
     <Content Include="templates\post_start.html" />
     <Content Include="templates\post_mixer.html" />

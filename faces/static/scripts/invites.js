@@ -372,7 +372,7 @@ var ru = (function ($, ru) {
           private_methods.clearError();
           console.log("init_stage " + sStage + ": " + imgcount.toString());
           // Find the indicated stage
-          for (i = 0; i < button_list.length - 1; i++) {
+          for (i = 0; i < button_list.length; i++) {
             oInfo = button_list[i];
             if (oInfo['stage'] === sStage) {
               // We found the stage
@@ -667,6 +667,7 @@ var ru = (function ($, ru) {
       // Select the emperor with the indicated id
       set_keizer: function (el, idx) {
         var elRow = null,
+            data = [],
             elTable = null;
 
         try {
@@ -682,6 +683,27 @@ var ru = (function ($, ru) {
             $(butMain).removeClass("hidden");
             $(butMain).html("Neem keizer #" + idx);
             loc_keizerkeuze = idx;
+
+            // Signal this choice of emperor to the HOST
+            data.push({ "name": "id", "value": loc_keizerkeuze });
+            $.post("/post_manual", data, function (response) {
+              var oResponse = null,
+                  bOk = false;
+
+              // Sanity check
+              if (response !== undefined) {
+                oResponse = JSON.parse(response);
+                if (oResponse['status'] == "ok") {
+                  // Log that all is well
+                  console.log("Confirmed choice of emperor: " + loc_keizerkeuze);
+                  bOk = true;
+                }
+              }
+              if (!bOk) {
+                console.log("set_keizer did not receive proper feedback for " + loc_keizerkeuze);                
+              }
+
+            });
 
             //$("#keizerkeuze").removeClass("hidden");
             //$("#keizerkeuze").attr("href", "/choose?id=" + idx);

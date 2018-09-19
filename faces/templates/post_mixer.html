@@ -38,23 +38,35 @@
           </form>
         </div>
         <div id="mail_msg"><!-- Provide a feedback message on the mail here--></div>
-        <h2>
-          <span>Achtergrond</span>
-        </h2>
-        <div id="background_info">
-          <p>
-            Deze app is ontwikkeld door de Technische Service Groep van de Letterenfacultaat van de Radboud Universiteit Nijmegen.
-            Wij staan u graag ten dienste met onze wetenschappelijke programmeerkennis.
-            Of het nu gaat om even meekijken en adviseren bij uw eigen pogingen of het zorgen voor complexe oplossingen in uw onderzoek -
-            wij willen met alle plezier helpen.
-          </p>
-          <a href="https://www.ru.nl/nieuws-agenda/radboud-lustrum/radboud-invites/" target="_blank">
-            <img src="static/content/invites_faces.png"
-                 alt="De TSG"
-                 title="Radboud Invites"
-                 style="width:500px;z-index:-2" />
-          </a>
-
+        <div id="result_descr">
+          @resultdescr@
         </div>
+
+        <!-- <h2>Ontwikkeling</h2>-->
+        <div class="panel panel-default">
+          <div class="panel-heading collapsed" data-toggle="collapse" data-target="#ontwikkeling-1">
+            <span>Over deze app</span>
+            <span class="pull-right" style="font-size: smaller;"><i>TSG</i></span>
+          </div>
+          <div class="collapse" id="ontwikkeling-1">
+            <p>
+              Deze app is ontwikkeld door de 
+              <a href="https://www.ru.nl/humanitieslab/technical-support-group/general/" target="_blank">Technical Support Group</a> 
+              van de Letterenfacultaat van de Radboud Universiteit Nijmegen.
+              Wij staan u graag ten dienste met onze wetenschappelijke programmeerkennis.
+              Of het nu gaat om even meekijken en adviseren bij uw eigen pogingen of het zorgen voor complexe oplossingen in uw onderzoek -
+              wij willen met alle plezier helpen.
+            </p>
+            <p>De app is geprogrammeerd in <code>Python</code> en maakt gebruik van de 'facemorpher' code 
+            (Zie <a href="https://github.com/alyssaq/face_morpher">github</a>; 
+            <a href="http://alyssaq.github.io/mit-license/">MIT license</a>).
+            Deze code gebruikt op haar beurt weer andere software, en dan met name <a href="https://pypi.org/project/opencv-python/">OpenCV</a>
+             (een C++ project dat beschikbaar is gemaakt voor Python).
+            De facemorpher software is aangepast om ieder gemorphed beeld op de juiste plek en met het juiste masker
+             te combineren met het keizerbeeld op de achtergrond.
+            </p>
+          </div>
+        </div>
+
       </div>
  

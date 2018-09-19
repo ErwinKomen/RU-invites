@@ -173,7 +173,6 @@ def keizer_list():
     # Return the combination
     return "\n".join(lstE)
 
-
 def keizer_image(idx):
     """Return the image file name for this keizer"""
     img_name = ""
@@ -223,6 +222,7 @@ class Root(object):
     imgpaths = []
     counter = 1
     session_idx = ""
+    keizer_abbr = ""
     lStatus = []
     lQuiz = []
     questions = None
@@ -241,13 +241,20 @@ class Root(object):
     ]
     button_list = [
         { 'stage': 'start',   'next': 'quiz','lead': 'Neem uw foto en we gaan het zien...',
-          'text': "Maak mijn portret", "title": "Stap 1: neem je eigen foto (met de webcam)" },
-        { 'stage': 'quiz', 'next': 'choose', 'lead': 'Uw foto is er, nu hebben we een kleine quiz...',
-          'text': "Ja, deze keizer(in)",  "title": "Stap 2: Neem de winnende keizer(in)" },
+                                            'text': "Maak mijn portret", 
+                                            "title": "Stap 1: neem je eigen foto (met de webcam)" },
+        { 'stage': 'quiz',    'next': 'choose', 'lead': 'Uw foto is er, nu hebben we een kleine quiz...',
+                                            'text': "Ja, deze keizer(in)",  
+                                            "title": "Stap 2: Neem de winnende keizer(in)" },
         { 'stage': 'choose',  'next': 'mix',    'lead': 'Houd u vast, de gezichtenmixer wordt opgestart...',
-          'text': "Combineer",         "title": "Stap 3: combineer" },
-        { 'stage': 'mix',     'next': 'start',  'lead': 'Hier is het resultaat...',
-          'text': "Maak mijn portret", "title": "Begin helemaal overnieuw" }
+                                            'text': "Combineer",         
+                                            "title": "Stap 3: combineer" },
+        { 'stage': 'picture', 'next': 'mix',  'lead': 'Houd u vast, de gezichtenmixer wordt opgestart...',
+                                            'text': "Combineer",         
+                                            "title": "Stap 3: combineer" },
+        { 'stage': 'mix',     'next': 'picture',  'lead': 'Hier is het resultaat...',
+                                            'text': "Kies zelf", 
+                                            "title": "Stap 2b: Kies zelf een keizer(in)" }
     ]
 
     def get_status_object(self, session_id = None):
@@ -505,6 +512,39 @@ class Root(object):
         return json.dumps(oBack)
 
     @cherrypy.expose
+    def post_manual(self, id=""):
+        # Default reply
+        oBack = {'status': 'ok', 'html': 'alles in orde'}
+
+        try:
+            # Possibly convert string to integer
+            if isinstance(id, str):
+                id = int(id)
+            # Show what has been found
+            print("keizer id = {}".format(id), file=sys.stderr)
+
+            # get the object of this emperor
+            oWinner = self.get_emp_obj(id)
+            # Set the keizer abbreviation
+            self.keizer_abbr = oWinner['keizer_grp']
+
+            # Retrieve the currently existing image
+            img_self = get_picture_name(self.counter)
+            # Find out which file name this is
+            img_keizer = keizer_image(id)
+            # Put the images in imgpaths
+            self.imgpaths.clear()
+            self.imgpaths.append(img_self)
+            self.imgpaths.append(img_keizer)
+        except:
+            sMsg = get_error_message()
+            print("post_manual error: ".format(sMsg), file=sys.stderr)
+            oBack['status'] = "error"
+            oBack['html'] = sMsg
+
+        return json.dumps(oBack)
+
+    @cherrypy.expose
     def post_choose(self, id=0, qalist=""):
 
         # Default reply
@@ -518,6 +558,9 @@ class Root(object):
         # Calculate a keizer_id based on the information in qalist
         oWinner = self.quiz_result(json.loads(qalist))
         id = oWinner['keizer_id']
+
+        # Set the keizer abbreviation
+        self.keizer_abbr = oWinner['keizer_grp']
 
         # Retrieve the currently existing image
         img_self = get_picture_name(self.counter)
@@ -589,6 +632,11 @@ class Root(object):
             # Set the status
             self.set_status("mix", "creating page")
 
+            # Get the page of the emperor
+            keizer_abbr = self.keizer_abbr
+            keizer_template = "templates/keizer_{}.html".format(keizer_abbr)
+            sResultDescr = treat_bom( get_template_unit(keizer_template))
+
             # Load the 'picture' template
             sHtml = get_template_unit(self.template_post_mixer)
             show_img = math.floor(max_img / 2)
@@ -601,6 +649,7 @@ class Root(object):
                     imgnum, self.session_idx, imgnum, timestamp, i, max_img, hidden)
                 lRes.append(sLine)
             sHtml = sHtml.replace("@results@", "\n".join(lRes))
+            sHtml = sHtml.replace("@resultdescr@", sResultDescr)
             sHtml = sHtml.replace("@session_idx@", self.session_idx)
             oBack['status'] = "ok"
             # Set the status
@@ -716,6 +765,50 @@ class Root(object):
             sMsg = get_error_message()
             print("Error in read_quiz_data: {}".format(sMsg), file=sys.stderr)
             return False
+
+    def get_emp_obj(self, id):
+        """Get the emperor object with the indicated keizer_id"""
+
+        oEmp = {'keizer_grp': '---'}
+        try:
+            print("get_emp_obj step #1", file=sys.stderr)
+
+            # Check if initialization is needed
+            if self.emperors == None:
+                print("get_emp_obj step #2 (re-loading quiz_data)", file=sys.stderr)
+                self.read_quiz_data()
+
+            # Find the emperor with the indicated id
+            lEmp = [x for x in self.emperors if x['keizer_id'] == id]
+
+            print("get_emp_obj step #3 len={}".format(len(self.emperors)), file=sys.stderr)
+            # This list may be larger
+            emp_count = len(lEmp)
+            print("number of emperors found = {}".format(emp_count))
+
+            if emp_count == 0:
+                print("get_emp_obj enumerating...", file=sys.stderr)
+                # Need to go through the whole list
+                for idx, emp in enumerate(self.emperors):
+                    sMatch = "true" if emp['keizer_id'] == id else "false"
+                    print("idx={} keizer_id={} match={}".format(idx, emp['keizer_id'], sMatch), file=sys.stderr)
+
+
+            if emp_count == 1:
+                oEmp = lEmp[0]
+                print("get_emp_obj step #4 grp={}".format(oEmp['keizer_grp']), file=sys.stderr)
+            else:
+                # Print the abbreviations of all the found emperors
+                for idx, emp in enumerate(lEmp):
+                    print("quiz_result #{} = {}".format(idx+1, emp['keizer_grp']))
+                # Take a random entry from the list
+                idx = random.randint(1, emp_count)
+                oEmp = lEmp[idx-1]
+        except:
+            sMsg = get_error_message()
+            print("get_emp_obj error: ".format(sMsg), file=sys.stderr)
+        # Return the result
+        return oEmp
 
     def quiz_result(self, qalist):
         """Calculate the id of the emperor based on the Question/Answer list"""
