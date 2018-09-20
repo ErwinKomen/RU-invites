@@ -174,6 +174,16 @@ var ru = (function ($, ru) {
         }
       },
 
+      allow_alternative: function (bChoice) {
+        if (bChoice) {
+          $(".alt-chooser").removeClass("hidden");
+          $("#alt-group").addClass("btn-group");
+        } else {
+          $(".alt-chooser").addClass("hidden");
+          $("#alt-group").removeClass("btn-group");
+        }
+      },
+
       zeroFill: function( number, width ) {
         width -= number.toString().length;
         if ( width > 0 ) {
@@ -402,6 +412,9 @@ var ru = (function ($, ru) {
           }
           loc_stage = sStage;
 
+          // Always: don't allow for alternative
+          private_methods.allow_alternative(false);
+
           // Action depends on the stage
           switch (sStage) {
             case "start": // Opening screen
@@ -436,6 +449,8 @@ var ru = (function ($, ru) {
                       $(butMain).removeClass("disabled");
                       // Hide the 'next' button until the user has chosen an emperor
                       $(butMain).addClass("hidden");
+                      // Allow the user to choose the alternative
+                      private_methods.allow_alternative(true);
                       // Reset the answers
                       loc_answers = [];
                     },
@@ -447,6 +462,29 @@ var ru = (function ($, ru) {
                       $("#startagain").removeClass("hidden");
                     }
                   );
+                });
+              });
+              break;
+            case "descr":     // Show all the descriptions
+              // For now inactivate the main button
+              $(butMain).addClass("disabled");
+              // Make sure we get the right image count
+              private_methods.get_imgcount(function () {
+                // Check if stage hasn't changed
+                if (loc_stage !== "descr") { return; }
+                // Call the correct method
+                private_methods.load_stage("/post_descr", data, function () {
+                  // Next button is not disabled any longer
+                  $(butMain).removeClass("disabled");
+                },
+                // Function if there is an error 
+                function () {
+                  // Next button is not disabled any longer
+                  $(butMain).removeClass("disabled");
+                  // Make sure my image is not shown anymore
+                  $("#user_image").addClass("hidden");
+                  // Reveal the button
+                  $("#startagain").removeClass("hidden");
                 });
               });
               break;
@@ -764,6 +802,8 @@ var ru = (function ($, ru) {
                 // Make sure the main button is available again
                 $(butMain).removeClass("hidden");
                 $(butMain).html("Laat maar zien");
+                // Also make sure no alternative is shown
+                private_methods.allow_alternative(false);
                 // Signal the chosen emperor to the host
                 // loc_keizerkeuze = idx;
               }

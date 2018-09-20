@@ -69,6 +69,7 @@
     <Content Include="static\scripts\crpstudio.htable.js" />
     <Content Include="static\scripts\invites.js" />
     <Content Include="templates\keizer_agr.html" />
+    <Content Include="templates\keizer_cri.html" />
     <Content Include="templates\keizer_jul.html" />
     <Content Include="templates\keizer_fau.html" />
     <Content Include="templates\keizer_ant.html" />

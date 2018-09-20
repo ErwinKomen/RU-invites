@@ -1061,3 +1061,9 @@ table tr.selected:hover {
 .faces img {
   width: 100%;
 }
+
+.faces {
+  float: none;
+  display: table-cell;
+  vertical-align: bottom;
+}

@@ -10,6 +10,9 @@ import datetime
 import smtplib      # Allow sending mail
 import csv
 import random
+from email.mime.multipart import MIMEMultipart
+from email.mime.image import MIMEImage
+from email.mime.text import MIMEText
 # The Radboud University adaptation of the facemorpher
 from ru_morpher import ru_morpher, check_for_image_points
 from utils import get_error_message, DoError, debugMsg
@@ -402,11 +405,32 @@ class Root(object):
         # Load the image
         encoded = "EMPTY"
         with open(imgname, "rb") as fo:
-            contents = fo.read()
+            img = fo.read()
             # Encode and return the encoded BYTES
-            encoded = base64.b64encode(contents)    # Base-64 encode the image
+            encoded = base64.b64encode(img)    # Base-64 encode the image
             # Convert each byte to an appropriate string character
             encoded = encoded.decode()
+
+        # Get the text of the emperor description
+        template = "templates/keizer_{}.html".format( self.keizer_abbr)
+        sDescr = treat_bom( get_template_unit(template))
+        # Change all the image location references
+        sBase = "http://localhost:6001"
+        iPos = sDescr.find("static/content/")
+        while iPos >= 0:
+            sDescr = sDescr[:iPos] + sBase + "/" + sDescr[iPos:]
+            iPos = sDescr.find("static/content/", iPos + len(sBase) + 5)
+
+        # Get the full name of the emperor
+        sName = "(niet gevonden)"
+        if self.emperors == None:
+            self.read_quiz_data()
+        if self.keizer_abbr == None:
+            print("post_mail: do not have abbr", file=sys.stderr)
+        else:
+            lEmp = [x for x in self.emperors if x['keizer_grp'] == self.keizer_abbr]
+            if len(lEmp) > 0:
+                sName = lEmp[0]['keizer_naamNL']
 
         # Prepare the fields
         mail_from = "ekomen@science.ru.nl"
@@ -415,32 +439,51 @@ class Root(object):
         boundary_marker = "RADBOUD_INVITES_MARKER_OF_MAIL"
 
         # Create header and mail
-        lMail = []
-        lMail.append("From: {}".format(mail_from))
-        lMail.append("To: {}".format(mail_to))
-        lMail.append("Subject: {}".format(subject))
-        lMail.append("MIME-Version: 1.0")
-        lMail.append("Content-Type: multipart/mixed; boundary={}".format(boundary_marker))
-        lMail.append("--{}".format(boundary_marker))
-        lMail.append("Content-Type: text/plain")
-        lMail.append("Content-Transfer-Encoding:8bit")
-        lMail.append("")
-        lMail.append("Hierbij uw keizerbeeld {}".format(imgname))
-        lMail.append("--{}".format(boundary_marker))
-        lMail.append("Content-Type: multipart/mixed; name=\"{}\"".format(filename))
-        lMail.append("Content-Transfer-Encoding:base64")
-        lMail.append("Content-Disposition: attachment; filename={}".format(filename))
-        lMail.append("")
-        lMail.append(encoded)
-        lMail.append("--{}--".format(boundary_marker))
-        #hdr = "From: {}\r\nTo: {}\r\nSubject: {}\r\n\r\n".format(mail_from, mail_to, subject)
-        ##body = "Dit is een bericht over beeld {}".format(imgname)
-        ## ========= DEBUG ====
-        #debugMsg(hdr)
-        ## ====================
+        sMethod = "mime"
+        if sMethod == "mime":
+            # Create message container
+            msgRoot = MIMEMultipart('related')
+            msgRoot['Subject'] = subject
+            msgRoot['From'] = mail_from
+            msgRoot['To'] = mail_to
+            # Create the HTML body of the message
+            lHtml = []
+            lHtml.append("<p>Hierbij uw keizerbeeld, gebaseerd op: {}</p>".format(sName))
+            lHtml.append("<p><img src=\"cid:image1\"></p>".format())
+            lHtml.append(sDescr)
+            msgHtml = MIMEText("\n".join(lHtml), "html", "utf-8")
+            # Attack the image
+            msgImg = MIMEImage(img, "png")
+            msgImg.add_header("Content-ID", "<image1>")
+            msgImg.add_header("Content-Disposition", "inline", filename=imgname)
+            # Add HTML and IMAGE to the root
+            msgRoot.attach(msgHtml)
+            msgRoot.attach(msgImg)
+            # Convert into a string
+            message = msgRoot.as_string()
+        else:
+            lMail = []
+            lMail.append("From: {}".format(mail_from))
+            lMail.append("To: {}".format(mail_to))
+            lMail.append("Subject: {}".format(subject))
+            lMail.append("MIME-Version: 1.0")
+            lMail.append("Content-Type: multipart/mixed; boundary={}".format(boundary_marker))
+            lMail.append("--{}".format(boundary_marker))
+            lMail.append("Content-Type: text/html; charset=utf-8")
+            lMail.append("Content-Transfer-Encoding:8bit")
+            lMail.append("")
+            lMail.append("<p>Hierbij uw keizerbeeld, gebaseerd op: {}</p>".format(sName))
+            lMail.append(sDescr)
+            lMail.append("--{}".format(boundary_marker))
+            lMail.append("Content-Type: multipart/mixed; name=\"{}\"".format(filename))
+            lMail.append("Content-Transfer-Encoding:base64")
+            lMail.append("Content-Disposition: attachment; filename={}".format(filename))
+            lMail.append("")
+            lMail.append(encoded)
+            lMail.append("--{}--".format(boundary_marker))
 
-        # Combine the message
-        message = "\n".join(lMail)
+            # Combine the message
+            message = "\n".join(lMail).encode('utf-8').strip()
 
         try:
             # Try to send this to the indicated email address
@@ -453,9 +496,39 @@ class Root(object):
             oResponse['status'] = "error"
             oResponse['msg'] = "Sorry, de mail kon niet verzonden worden ({})".format(sMsg)
             debugMsg("post_mail #3")
+            debugMsg("error: {}".format(sMsg))
 
         # Return the response
         return json.dumps(oResponse)
+
+    @cherrypy.expose
+    def post_descr(self):
+        """Show all the descriptions"""
+
+        # Default reply
+        oBack = {'status': 'error', 'html': 'kon niet lezen'}
+
+        try:
+            # Walk all the emperors
+            sAbbr = ""
+            lHtml = []
+            for oEmp in self.emperors:
+                if sAbbr != oEmp['keizer_grp']:
+                    sAbbr = oEmp['keizer_grp']
+                    # Get the page of the emperor
+                    keizer_template = "templates/keizer_{}.html".format(sAbbr)
+                    lHtml.append(treat_bom( get_template_unit(keizer_template)))
+            # Combine
+            sHtml = "\n".join(lHtml)
+
+            # Respond appropriately
+            oBack['status'] = "ok"
+            oBack['html'] = sHtml
+        except:
+            sHtml = get_error_message()
+            DoError()
+
+        return json.dumps(oBack)
 
     @cherrypy.expose
     def post_picture(self):
@@ -497,6 +570,9 @@ class Root(object):
         # Retrieve the currently existing image
         img_name = get_picture_name(self.counter)
 
+        # Check whether the image contains points
+        bHasPoints = check_for_image_points(img_name)
+
         # Load the 'picture' template - this shows the resulting picture
         sHtml = get_template_unit(self.template_post_quiz).replace("@img_name@", img_name)     
         # Put in the list of emperors
@@ -505,9 +581,12 @@ class Root(object):
         # Set the status
         self.set_status("quiz", "img_name={}".format(img_name))
 
-        # make sure what we return is okay
-        oBack['status'] = "ok"
-        oBack['html'] = sHtml
+        if bHasPoints:
+            # Respond appropriately
+            oBack['status'] = "ok"
+            oBack['html'] = sHtml
+        else:
+            oBack['html'] = "Ik kan uw gezicht niet herkennen in dit beeld"
 
         return json.dumps(oBack)
 
