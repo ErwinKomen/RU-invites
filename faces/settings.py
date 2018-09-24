@@ -1,18 +1,21 @@
 import os
 import cherrypy
 
+SUBDOMAIN = "/amatchmadeinrome"
+
 CONFIGURATION = {
         "/": {
                 'tools.sessions.on': True, 
-                'tools.staticdir.root': os.path.abspath(os.getcwd()),
+                'tools.staticdir.root':  os.path.abspath(os.getcwd()),
              },
         "/static": {
                 'tools.staticdir.on': True,
-                'tools.staticdir.dir': './static'
+                # 'tools.staticdir.dir': "/var/www/applejack/live/repo/faces/faces/static"  # os.path.join(APP_PREFIX, "static") # '.' + APP_PREFIX + '/static'
+                'tools.staticdir.dir': "static"
              },
         }
 
-SERVE_PORT = 6001   # 443    # 6001
+SERVE_PORT = 4523   # 6001   # 443    # 6001
 
 KEIZER_BASE = "static/img"
 

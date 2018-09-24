@@ -1,4 +1,5 @@
 import cherrypy
+# from cherrypy import tools
 import io, os, sys
 import cv2, re
 import json
@@ -17,7 +18,7 @@ from email.mime.text import MIMEText
 from ru_morpher import ru_morpher, check_for_image_points
 from utils import get_error_message, DoError, debugMsg
 
-from settings import CONFIGURATION, SERVE_PORT, KEIZER_BASE, KEIZERS
+from settings import CONFIGURATION, SERVE_PORT, KEIZER_BASE, KEIZERS, SUBDOMAIN
 
 OUT_FRAMES = "static/tmp"
 DATA_DIR = "static/data"
@@ -1023,8 +1024,14 @@ cherrypy.config.update({'server.socket_port': SERVE_PORT,})
 # This is to serve as a UWSGI application
 
 cherrypy.config.update({'engine.autoreload.on': False})
+
+if SERVE_PORT != 6001:
+    cherrypy.config.update({'log.access_file': '../../../writable/faces/logs/faces_access.log',
+                            'log.error_file': '../../../writable/faces/logs/faces_error.log'})
 cherrypy.server.unsubscribe()
+
 cherrypy.engine.start()
 
-application = cherrypy.tree.mount(Root(), config=conf)
+application = cherrypy.tree.mount(Root(), SUBDOMAIN , config=conf)
+#application = cherrypy.tree.mount(Root(), config=conf)
 # ----------------------------------------------------

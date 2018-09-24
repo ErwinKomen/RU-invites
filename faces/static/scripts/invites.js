@@ -79,7 +79,7 @@ var ru = (function ($, ru) {
 
       // Get the list of button definitions
       get_buttons: function (sStage) {
-        var ajaxurl = "/post_buttonlist";
+        var ajaxurl = "post_buttonlist";
 
         try {
           if (button_list === null) {
@@ -102,7 +102,7 @@ var ru = (function ($, ru) {
 
       // Get the image count number
       get_imgcount: function (func_next) {
-        var ajaxurl = "/post_imgcount";
+        var ajaxurl = "post_imgcount";
 
         try {
           if (butMain !== null) {
@@ -339,7 +339,7 @@ var ru = (function ($, ru) {
             // Add the image count
             data.push({"name": "imgname", "value": $(img).attr("src")});
             // Now call the correct post function with this data
-            $.post("/post_mail", data, function (response) {
+            $.post("post_mail", data, function (response) {
               var oResponse = null,
                   sHtml = "";
               // Sanity check
@@ -424,7 +424,7 @@ var ru = (function ($, ru) {
               $(butMain).removeClass("hidden");
               $(butMain).removeClass("disabled");
               // Load the correct information
-              private_methods.load_stage("/post_start", data, function () {
+              private_methods.load_stage("post_start", data, function () {
                 // Make sure a new image count is fetched
                 private_methods.get_imgcount();
               });
@@ -441,7 +441,7 @@ var ru = (function ($, ru) {
                   // Check if stage hasn't changed
                   if (loc_stage !== "quiz") { return; }
                   // Load the next page with this picture upon success
-                  private_methods.load_stage("/post_quiz", data,
+                  private_methods.load_stage("post_quiz", data,
                     function () {
                       // Check if stage hasn't changed
                       if (loc_stage !== "quiz") { return; }
@@ -473,7 +473,7 @@ var ru = (function ($, ru) {
                 // Check if stage hasn't changed
                 if (loc_stage !== "descr") { return; }
                 // Call the correct method
-                private_methods.load_stage("/post_descr", data, function () {
+                private_methods.load_stage("post_descr", data, function () {
                   // Next button is not disabled any longer
                   $(butMain).removeClass("disabled");
                 },
@@ -500,7 +500,7 @@ var ru = (function ($, ru) {
                   // Check if stage hasn't changed
                   if (loc_stage !== "picture") { return; }
                   // Load the next page with this picture upon success
-                  private_methods.load_stage("/post_picture", data, 
+                  private_methods.load_stage("post_picture", data, 
                     function () {
                       // Check if stage hasn't changed
                       if (loc_stage !== "picture") { return; }
@@ -530,7 +530,7 @@ var ru = (function ($, ru) {
               // Set the list of q/a
               data.push({ "name": "qalist", "value": JSON.stringify( loc_answers) });
               // Load the correct page 
-              private_methods.load_stage("/post_choose", data, function () {
+              private_methods.load_stage("post_choose", data, function () {
                 // Next button is not disabled any longer
                 $(butMain).removeClass("disabled");
               });
@@ -543,7 +543,7 @@ var ru = (function ($, ru) {
               // Start up a process to receive status feedback after a few milliseconds
               setTimeout(function () { ru.invites.show_status("mix"); }, 200);
               // Start up the mixer: the facemorphing process
-              private_methods.load_stage("/post_mix", data,
+              private_methods.load_stage("post_mix", data,
                 // Function if success
                 function () {
                   // Next button is not disabled any longer
@@ -588,7 +588,7 @@ var ru = (function ($, ru) {
           // Indicate who we are to get the correct status
           data.push({"name": "session_id", "value": imgcount });
           // Get the status
-          $.post("/post_status", data, function (response) {
+          $.post("post_status", data, function (response) {
             var oResponse = null,
                 sHtml = "";
             // Sanity check
@@ -653,7 +653,7 @@ var ru = (function ($, ru) {
             elMsg = null,
             img = null,
             counter = 1,            // The number for this image
-            ajaxurl = "/post_img";  // Where to post the image to
+            ajaxurl = "post_img";  // Where to post the image to
 
         try {
           // Check initialization
@@ -724,7 +724,7 @@ var ru = (function ($, ru) {
 
             // Signal this choice of emperor to the HOST
             data.push({ "name": "id", "value": loc_keizerkeuze });
-            $.post("/post_manual", data, function (response) {
+            $.post("post_manual", data, function (response) {
               var oResponse = null,
                   bOk = false;
 
