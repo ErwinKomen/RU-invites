@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html>
 <head>
   <meta charset="utf-8" />
@@ -12,6 +12,13 @@
   <script src="static/scripts/respond.js"></script>
   <script src="static/scripts/invites.js"></script>
   <script src="static/scripts/crpstudio.htable.js"></script>
+  <script type="text/javascript">
+    // What to do immediately after the whole page has been read...
+    $(document).ready(function() {
+      // This is where a function is sometimes put
+      ru.invites.startup();
+    });
+  </script>
 </head>
 <body>
   <div class="container body-content">

@@ -18,9 +18,10 @@ from email.mime.text import MIMEText
 from ru_morpher import ru_morpher, check_for_image_points
 from utils import get_error_message, DoError, debugMsg
 
-from settings import CONFIGURATION, SERVE_PORT, KEIZER_BASE, KEIZERS, SUBDOMAIN
+from settings import CONFIGURATION, SERVE_PORT, KEIZER_BASE, KEIZERS, SUBDOMAIN, WRITABLE
 
-OUT_FRAMES = "static/tmp"
+APP_PFX = SUBDOMAIN.strip("/") + "/"
+OUT_FRAMES = "static/tmp"   # os.path.abspath(os.path.join(WRITABLE, "tmp"))  # "static/tmp"
 DATA_DIR = "static/data"
 STAT_FILE = "static/tmp/status.json"
 # Define conf
@@ -31,18 +32,31 @@ def get_current_time_as_string():
     st = datetime.datetime.fromtimestamp(ts).strftime('%Y-%m-%d_%H%M%S')
     return st
 
+def static_adapt(sHtml):
+    """Convert all "static/..." to ones that have the app prefix"""
+
+    iPos = sHtml.find("\"static/")
+    iPos2 = sHtml.find("static/")
+    print("static_adapt has 'static/ at {} and static/ at {}".format(iPos, iPos2), file=sys.stderr)
+    if iPos2 == 0:
+        sHtml = sHtml.replace("static/", "/" + APP_PFX + "static/")
+    else:
+        sHtml = sHtml.replace("\"static/", "\"/" + APP_PFX + "static/")
+    return sHtml
+
 def get_template(sLoc, include_init=0):
     """Get the template from the location and return its contents"""
 
     sFooter = get_template_unit("templates/footer.html")
+    sHeader = get_template_unit("templates/header.html")
+    sInit = "ru.invites.startup();"
     if include_init==1:
-        sFooter = sFooter.replace("@init@", "ru.invites.init_events(1);")
+        sHeader = sHeader.replace(sInit, "ru.invites.init_events(1);")
     elif include_init==2:
-        sFooter = sFooter.replace("@init@", "ru.invites.init_events(2);")
+        sHeader = sHeader.replace(sInit, "ru.invites.init_events(2);")
     else:
-        sFooter = sFooter.replace("@init@", "")
-    sData = get_template_unit("templates/header.html") + \
-            get_template_unit(sLoc) + sFooter
+        sHeader = sHeader.replace(sInit, "")
+    sData = sHeader + get_template_unit(sLoc) + sFooter
     # Return the data
     return sData
 
@@ -57,11 +71,13 @@ def get_template_unit(sLoc):
             lData = f.readlines()
         # Convert the lines into a string
         sData = "\n".join(lData)
+        # Immediate conversion of static base
+        sData = sData.replace("static/", "/" + APP_PFX + "static/")
     # Return the data
     return sData
 
 def get_picture_name(img_counter):
-    img_name = "static/opencv_frame_{}.png".format(img_counter)
+    img_name = "static/tmp/opencv_frame_{}.png".format(img_counter)
     return img_name
 
 def get_exif_info(path_name):
@@ -211,6 +227,28 @@ def is_number(sText):
     else:
         return True
 
+def prepare_img_dir(tmpdir, sNumber):
+    """Prepare the directory that will hold the images for iNumber"""
+
+    sTmpRoot = os.path.abspath(os.path.join( tmpdir, sNumber))
+    # Check if directory exists
+    if not os.path.exists(sTmpRoot):
+        # Create directory
+        print("prepare_img_dir: create {}".format(sTmpRoot))
+        os.makedirs(sTmpRoot)
+    else:
+        # The directory exists: remove all PNG files
+        print("prepare_img_dir: remove files from {}".format(sTmpRoot))
+        filelist = [ f for f in os.listdir(sTmpRoot) if f.endswith(".png") ]
+        for f in filelist:
+            os.remove(os.path.join(sTmpRoot, f))
+    # Look for the webcam picture 
+    sWebImg = os.path.abspath(get_picture_name(sNumber))
+    if os.path.exists(sWebImg):
+        # Remove it
+        print("prepare_img_dir: remove webcam img {}".format(sWebImg))
+        os.remove(sWebImg)
+
 
 # @cherrypy.expose
 class Root(object):
@@ -260,6 +298,15 @@ class Root(object):
                                             'text': "Kies zelf", 
                                             "title": "Stap 2b: Kies zelf een keizer(in)" }
     ]
+
+    def __init__(self, **kwargs):
+        # print("Root.ini: environment variable MPLCONFIGDIR is: {}".format(os.environ.get('MPLCONFIGDIR')), file=sys.stderr)
+        return super(Root, self).__init__(**kwargs)
+
+    def full_path(self, sFile):
+        sFull = os.path.abspath(os.path.join(self.root_path, sFile))
+        sFull = sFull.replace("/repo/faces/faces/static/tmp", "/writable/faces/tmp")
+        return sFull
 
     def get_status_object(self, session_id = None):
         # Read the status file
@@ -321,10 +368,14 @@ class Root(object):
 
         # Increment the counter
         self.counter += 1
-        if self.counter > 9:
+        if self.counter >= 10:
             self.counter = 0
         # Create a session_index string
         self.session_idx = str(self.counter)
+
+        # Clear the CACHE for this image
+        prepare_img_dir(self.out_frames, self.session_idx)
+
         # Set the status
         self.set_status("start", "counter={}".format(self.counter))
         # Load the 'root' template
@@ -352,7 +403,7 @@ class Root(object):
             # Determine where to put the image
             img_name = get_picture_name(counter) 
             # Calculate the local path
-            sPath = os.path.abspath(os.path.join(self.root_path, img_name))
+            sPath = self.full_path( img_name)
             # Remove the old image with this name (if it exists)
             if os.path.exists(sPath):
                 os.remove(sPath);
@@ -405,7 +456,12 @@ class Root(object):
             imgname = imgname[:idx]
         # Load the image
         encoded = "EMPTY"
-        with open(imgname, "rb") as fo:
+
+
+        img_path = self.full_path( imgname)
+        # Filter out the prefix if needed
+        img_path = img_path.replace(APP_PFX, "")
+        with open(img_path, "rb") as fo:
             img = fo.read()
             # Encode and return the encoded BYTES
             encoded = base64.b64encode(img)    # Base-64 encode the image
@@ -542,10 +598,11 @@ class Root(object):
         img_name = get_picture_name(self.counter)
 
         # Check whether the image contains points
-        bHasPoints = check_for_image_points(img_name)
+        img_path = self.full_path( img_name)
+        bHasPoints = check_for_image_points(img_path)
 
         # Load the 'picture' template - this shows the resulting picture
-        sHtml = get_template_unit(self.template_post_pictu).replace("@img_name@", img_name)     
+        sHtml = get_template_unit(self.template_post_pictu).replace("@img_name@", static_adapt(img_name))
         # Put in the list of emperors
         sHtml = sHtml.replace("@keizer_list@", keizer_list())   
 
@@ -572,10 +629,11 @@ class Root(object):
         img_name = get_picture_name(self.counter)
 
         # Check whether the image contains points
-        bHasPoints = check_for_image_points(img_name)
+        img_path = self.full_path(img_name)
+        bHasPoints = check_for_image_points(img_path)
 
         # Load the 'picture' template - this shows the resulting picture
-        sHtml = get_template_unit(self.template_post_quiz).replace("@img_name@", img_name)     
+        sHtml = get_template_unit(self.template_post_quiz).replace("@img_name@", static_adapt(img_name))
         # Put in the list of emperors
         sHtml = sHtml.replace("@quiz_list@", self.quiz_list())   
 
@@ -614,8 +672,8 @@ class Root(object):
             img_keizer = keizer_image(id)
             # Put the images in imgpaths
             self.imgpaths.clear()
-            self.imgpaths.append(img_self)
-            self.imgpaths.append(img_keizer)
+            self.imgpaths.append(self.full_path(img_self))
+            self.imgpaths.append(self.full_path(img_keizer))
         except:
             sMsg = get_error_message()
             print("post_manual error: ".format(sMsg), file=sys.stderr)
@@ -648,12 +706,12 @@ class Root(object):
         img_keizer = keizer_image(id)
         # Put the images in imgpaths
         self.imgpaths.clear()
-        self.imgpaths.append(img_self)
-        self.imgpaths.append(img_keizer)
+        self.imgpaths.append(self.full_path(img_self))
+        self.imgpaths.append(self.full_path(img_keizer))
         # Load the 'picture' template
         sHtml = get_template_unit(self.template_post_choos)
-        sHtml = sHtml.replace("@img_keizer@", img_keizer)
-        sHtml = sHtml.replace("@img_self@", img_self)
+        sHtml = sHtml.replace("@img_keizer@", static_adapt( img_keizer))
+        sHtml = sHtml.replace("@img_self@", static_adapt(img_self))
         sHtml = sHtml.replace("@keizer_name@", oWinner['keizer_naamNL'])
         sHtml = sHtml.replace("@keizer_score@", str(oWinner['score']) )
 
@@ -725,8 +783,8 @@ class Root(object):
                 hidden = "" if i == show_img else " hidden"
                 imgnum = str(i).zfill(3)
                 timestamp = get_current_time_as_string()
-                sLine = "<img id=\"pic{}\" src=\"static/tmp/{}/frame{}.png?{}\" title=\"{}/{}\" class=\"result-pic {}\" />".format(
-                    imgnum, self.session_idx, imgnum, timestamp, i, max_img, hidden)
+                sLine = "<img id=\"pic{}\" src=\"{}static/tmp/{}/frame{}.png?{}\" title=\"{}/{}\" class=\"result-pic {}\" />".format(
+                    imgnum, APP_PFX, self.session_idx, imgnum, timestamp, i, max_img, hidden)
                 lRes.append(sLine)
             sHtml = sHtml.replace("@results@", "\n".join(lRes))
             sHtml = sHtml.replace("@resultdescr@", sResultDescr)
@@ -1004,34 +1062,48 @@ class Root(object):
         return sItem
 
 
+# The code below is 'old' stuff and is now replaced by [wsgi.py], which should be called to run the application
+bUseWsgiDotPy = True
 
-   
-# Set the port on which I will be serving
-cherrypy.config.update({'server.socket_port': SERVE_PORT,})
+if not bUseWsgiDotPy:
+    # Set the port on which I will be serving
+    cherrypy.config.update({'server.socket_port': SERVE_PORT,})
 
-## ----------------------------------------------------
-## This is to serve as a plain python application
-## Grab the main access
-#if __name__ == '__main__':
+    ## ----------------------------------------------------
+    ## This is to serve as a plain python application
+    ## Grab the main access
+    #if __name__ == '__main__':
 
-#    # Start serving as if from /
-#    cherrypy.quickstart(Root(), '/', conf)
-## ----------------------------------------------------
+    #    # Start serving as if from /
+    #    cherrypy.quickstart(Root(), '/', conf)
+    ## ----------------------------------------------------
 
 
 
-# ----------------------------------------------------
-# This is to serve as a UWSGI application
+    # ----------------------------------------------------
+    # This is to serve as a UWSGI application
 
-cherrypy.config.update({'engine.autoreload.on': False})
+    if SERVE_PORT != 6001:
+        BASE_DIR = "/var/www/applejack/live"
+        cherrypy.config.update({'log.access_file': BASE_DIR + '/writable/faces/logs/faces_access.log',
+                                'log.error_file': BASE_DIR + '/writable/faces/logs/faces_error.log'})
 
-if SERVE_PORT != 6001:
-    cherrypy.config.update({'log.access_file': '../../../writable/faces/logs/faces_access.log',
-                            'log.error_file': '../../../writable/faces/logs/faces_error.log'})
-cherrypy.server.unsubscribe()
+    # Change the order to make the last listed attempt work...
+    attempt = "cherrypy_documentation" 
+    attempt = "simple_copy"
 
-cherrypy.engine.start()
+    if attempt == "cherrypy_documentation":
+        # See the cherrypy documentation section 8.7.4 uwsgi
+        cherrypy.config.update({'engine.autoreload.on': False})
+        cherrypy.server.unsubscribe()
+        cherrypy.engine.start()
+        # Make the application available for WSGI
+        application = cherrypy.tree.mount(Root(), SUBDOMAIN , config=conf)
 
-application = cherrypy.tree.mount(Root(), SUBDOMAIN , config=conf)
-#application = cherrypy.tree.mount(Root(), config=conf)
-# ----------------------------------------------------
+    elif attempt == "simple_copy":
+        # First mount the application
+        application = cherrypy.tree.mount(Root(), SUBDOMAIN , config=conf)
+        # Then do the start and the block
+        cherrypy.engine.start()
+        cherrypy.engine.block()
+

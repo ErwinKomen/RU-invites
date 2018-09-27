@@ -15,9 +15,11 @@ CONFIGURATION = {
              },
         }
 
-SERVE_PORT = 4523   # 6001   # 443    # 6001
+SERVE_PORT = 4524   # 4523   # 6001   # 443    # 6001
 
 KEIZER_BASE = "static/img"
+
+WRITABLE = "/var/www/applejack/live/writable/faces"
 
 KEIZERS = [
     {"id": 1,  "doel": "kind",       "geslacht": "m", "grp": "cal", "naam": "Caligula",       "file": "13192017765_a078c7b2f5_o.jpg"},
