@@ -14,6 +14,7 @@ import random
 from email.mime.multipart import MIMEMultipart
 from email.mime.image import MIMEImage
 from email.mime.text import MIMEText
+from threading import Thread
 # The Radboud University adaptation of the facemorpher
 from ru_morpher import ru_morpher, check_for_image_points
 from utils import get_error_message, DoError, debugMsg
@@ -24,6 +25,9 @@ APP_PFX = SUBDOMAIN.strip("/") + "/"
 OUT_FRAMES = "static/tmp"   # os.path.abspath(os.path.join(WRITABLE, "tmp"))  # "static/tmp"
 DATA_DIR = "static/data"
 STAT_FILE = "static/tmp/status.json"
+
+MAX_SESSION = 50        # Maximum amount of sessions to have at any one time
+
 # Define conf
 conf = CONFIGURATION
 
@@ -261,6 +265,7 @@ class Root(object):
     out_frames = OUT_FRAMES                     # Directory where the output images are stored
     data_dir = DATA_DIR                         # Directory where JSON data is stored
     status_file = os.path.abspath(os.path.join(os.getcwd(), STAT_FILE))
+    status_list = []
     imgpaths = []
     counter = 1
     session_idx = ""
@@ -309,40 +314,61 @@ class Root(object):
         return sFull
 
     def get_status_object(self, session_id = None):
-        # Read the status file
+        method = "list"     # Alternative: file
 
-        if os.path.exists(self.status_file):
-            with io.open(self.status_file, "r", encoding="utf8") as f:
-                lStatus = json.load(f)
-            self.lStatus = copy.copy(lStatus)
-        else:
-            self.lStatus = []
+        # Make sure we have a session_id
         if session_id == None:
             session_id = self.counter
         elif isinstance(session_id, str):
             session_id = int(session_id)
-        for oItem in self.lStatus:
-            if 'count' in oItem and oItem['count'] == session_id:
-                return oItem
+
+        # Action depends on method
+        if method == "file":
+            # Read the status file
+            if os.path.exists(self.status_file):
+                with io.open(self.status_file, "r", encoding="utf8") as f:
+                    lStatus = json.load(f)
+                self.lStatus = copy.copy(lStatus)
+            else:
+                self.lStatus = []
+            for oItem in self.lStatus:
+                if 'count' in oItem and oItem['count'] == session_id:
+                    return oItem
+        elif method == "list":
+            oItem = self.status_list[session_id]
+            return oItem
         # Getting here means no success
         return None
 
     def set_status(self, sStatus, sMsg="", session_id=None, ptc=0):
+        method = "list"     # Alternative: file
+
+        # Make sure we have a session_id
         if session_id == None:
             session_id = self.counter
         elif isinstance(session_id, str):
             session_id = int(session_id)
-        oStatus = self.get_status_object(session_id)
-        if oStatus == None:
-            oStatus = {'status': '', 'msg': '', 'count': session_id}
-            self.lStatus.append(oStatus)
-        oStatus['status'] = sStatus
-        oStatus['msg'] = sMsg
-        if ptc != None:
-            oStatus['ptc'] = ptc
-        # Write the status
-        with io.open(self.status_file, "w", encoding="utf8") as f:
-            json.dump(self.lStatus, f,)
+
+        # Action depends on method
+        if method == "file":
+            oStatus = self.get_status_object(session_id)
+            if oStatus == None:
+                oStatus = {'status': '', 'msg': '', 'count': session_id}
+                self.lStatus.append(oStatus)
+            oStatus['status'] = sStatus
+            oStatus['msg'] = sMsg
+            if ptc != None:
+                oStatus['ptc'] = ptc
+            # Write the status
+            with io.open(self.status_file, "w", encoding="utf8") as f:
+                json.dump(self.lStatus, f,)
+        elif method == "list":
+            # Adapt the status in the list
+            oStatus = self.status_list[session_id]
+            oStatus['status'] = sStatus
+            oStatus['msg'] = sMsg
+            if ptc != None:
+                oStatus['ptc'] = ptc
 
     @cherrypy.expose
     def index(self):
@@ -354,35 +380,53 @@ class Root(object):
         # Create a session_index string
         self.session_idx = str(self.counter)
 
+        # Initialize a list of status objects
+        for i in range(0,MAX_SESSION):
+            self.status_list.append({'status': 'empty', 'msg': '', 'count': i})
+
         # Load the 'root' template
         sHtml = get_template(self.template_index, 1).replace("@img_count@", self.session_idx)
         sHtml = sHtml.replace("@post_start@", get_template_unit(self.template_post_start))
         return sHtml
 
+    def get_new_session(self):
+
+        def noInterrupt():
+            self.counter += 1
+            if self.counter >= MAX_SESSION:
+                self.counter = 0
+            self.session_idx = str(self.counter)
+        a = Thread(target=noInterrupt, args=())
+        a.start()
+        a.join()
+        return self.session_idx
+
     @cherrypy.expose
-    def post_start(self):
+    def post_start(self, session_idx=None):
         """Show the opening page and allow people to start taking a picture"""
 
         # Default reply
         oBack = {'status': 'error', 'html': 'kon niet lezen'}
 
-        # Increment the counter
-        self.counter += 1
-        if self.counter >= 10:
-            self.counter = 0
+        # Remove anything from the current session of this user
+        # (Provided that session index is passed on)
+        if session_idx!= None:
+            prepare_img_dir(self.out_frames, self.session_idx)
+
         # Create a session_index string
-        self.session_idx = str(self.counter)
+        newSessionIdx = self.get_new_session()
 
         # Clear the CACHE for this image
-        prepare_img_dir(self.out_frames, self.session_idx)
+        prepare_img_dir(self.out_frames, newSessionIdx)
 
         # Set the status
-        self.set_status("start", "counter={}".format(self.counter))
+        self.set_status("start", "counter={}".format(newSessionIdx))
         # Load the 'root' template
-        sHtml = get_template_unit(self.template_post_start).replace("@img_count@", self.session_idx)
+        sHtml = get_template_unit(self.template_post_start).replace("@img_count@", newSessionIdx)
 
         # Respond appropriately
         oBack['status'] = "ok"
+        oBack['session_idx'] = newSessionIdx
         oBack['html'] = sHtml
         return json.dumps(oBack)
 
@@ -435,6 +479,8 @@ class Root(object):
             sHtml = ""
             if page == "ack":
                 t = "templates/ack.html"
+            elif page == "about":
+                t = "templates/about.html"
             elif page == "help":
                 t = "templates/helpdoc.html"
             if t!="":
@@ -442,16 +488,21 @@ class Root(object):
             return sHtml
         except:
             sHtml = get_error_message()
-            DoError()
+            DoError("post_page error: ")
 
     @cherrypy.expose
     def post_status(self, session_id=None):
-        # Find the current status object
-        oStatus = self.get_status_object(session_id)
-        if oStatus == None:
+        try:
+            # Find the current status object
+            oStatus = self.get_status_object(session_id)
+            if oStatus == None:
+                oStatus = {'status': 'error', 'msg': 'Cannot determine the status'}
+            # Show the status in my logging
+            debugMsg("status (c={}, sid={}) [{}]: {}".format(self.counter, session_id, oStatus['status'], oStatus['msg']))
+        except:
+            sHtml = get_error_message()
+            DoError("post_status error: ")
             oStatus = {'status': 'error', 'msg': 'Cannot determine the status'}
-        # Show the status in my logging
-        debugMsg("status (c={}, sid={}) [{}]: {}".format(self.counter, session_id, oStatus['status'], oStatus['msg']))
         # Return the current status object
         return json.dumps(oStatus)
 
@@ -605,14 +656,14 @@ class Root(object):
         return json.dumps(oBack)
 
     @cherrypy.expose
-    def post_picture(self):
+    def post_picture(self, session_idx=None):
         """While showing the culprit's image, let him choose an emperor"""
 
         # Default reply
         oBack = {'status': 'error', 'html': 'kon niet lezen'}
 
         # Retrieve the currently existing image
-        img_name = get_picture_name(self.counter)
+        img_name = get_picture_name(session_idx)
 
         # Check whether the image contains points
         img_path = self.full_path( img_name)
@@ -636,14 +687,14 @@ class Root(object):
         return json.dumps(oBack)
 
     @cherrypy.expose
-    def post_quiz(self):
+    def post_quiz(self, session_idx=None):
         """While showing the culprit's image, let him choose an emperor"""
 
         # Default reply
         oBack = {'status': 'error', 'html': 'kon niet lezen'}
 
         # Retrieve the currently existing image
-        img_name = get_picture_name(self.counter)
+        img_name = get_picture_name(session_idx)
 
         # Check whether the image contains points
         img_path = self.full_path(img_name)
@@ -667,7 +718,7 @@ class Root(object):
         return json.dumps(oBack)
 
     @cherrypy.expose
-    def post_manual(self, id=""):
+    def post_manual(self, id="", session_idx=None):
         # Default reply
         oBack = {'status': 'ok', 'html': 'alles in orde'}
 
@@ -684,7 +735,7 @@ class Root(object):
             self.keizer_abbr = oWinner['keizer_grp']
 
             # Retrieve the currently existing image
-            img_self = get_picture_name(self.counter)
+            img_self = get_picture_name(session_idx)
             # Find out which file name this is
             img_keizer = keizer_image(id)
             # Put the images in imgpaths
@@ -699,8 +750,26 @@ class Root(object):
 
         return json.dumps(oBack)
 
+    def get_imgpaths(self, id="", session_idx=None):
+        """Prepare an array of two images between which morphing needs to take place"""
+
+        imgpaths = []
+        try:
+            # Retrieve the currently existing image
+            img_self = get_picture_name(session_idx)
+            # Find out which file name this is
+            img_keizer = keizer_image(id)
+            # Append into list
+            imgpaths.append(self.full_path(img_self))
+            imgpaths.append(self.full_path(img_keizer))
+        except:
+            sMsg = get_error_message()
+            DoError()
+
+        return imgpaths
+
     @cherrypy.expose
-    def post_choose(self, id=0, qalist=""):
+    def post_choose(self, id=0, qalist="", session_idx=None):
 
         # Default reply
         oBack = {'status': 'error', 'html': 'kon niet lezen'}
@@ -718,7 +787,7 @@ class Root(object):
         self.keizer_abbr = oWinner['keizer_grp']
 
         # Retrieve the currently existing image
-        img_self = get_picture_name(self.counter)
+        img_self = get_picture_name(session_idx)
         # Find out which file name this is
         img_keizer = keizer_image(id)
         # Put the images in imgpaths
@@ -751,7 +820,7 @@ class Root(object):
             DoError("mix_callback: ")
 
     @cherrypy.expose
-    def post_mix(self):
+    def post_mix(self, keizer_id = None, session_idx=None):
 
         # Default reply
         sHtml = 'kon niet lezen'
@@ -762,16 +831,21 @@ class Root(object):
 
         try:
 
-            for item in self.imgpaths:
+            #for item in self.imgpaths:
+            #    debugMsg("item = [{}]".format(item))
+
+            imgpaths = self.get_imgpaths(keizer_id, session_idx)
+            for item in imgpaths:
                 debugMsg("item = [{}]".format(item))
+
             # Start up the facemorpher process
-            out_dir = "{}/{}".format(self.out_frames, self.session_idx)
+            out_dir = "{}/{}".format(self.out_frames, session_idx)
 
             # Set the status
             self.set_status("mix", "starting out_dir={}".format(out_dir))
 
             # Perform the morphing
-            oMorph = ru_morpher(self.imgpaths, out_frames=out_dir, obj=self) # counter=self.counter, callback = self.mix_callback)
+            oMorph = ru_morpher(imgpaths, out_frames=out_dir, obj=self, sessionid=session_idx) # counter=self.counter, callback = self.mix_callback)
             # Check the reply that we received
             if oMorph['status'] == 'error':
                 # We are not okay -- show the user an error message
@@ -801,11 +875,11 @@ class Root(object):
                 imgnum = str(i).zfill(3)
                 timestamp = get_current_time_as_string()
                 sLine = "<img id=\"pic{}\" src=\"{}static/tmp/{}/frame{}.png?{}\" title=\"{}/{}\" class=\"result-pic {}\" />".format(
-                    imgnum, APP_PFX, self.session_idx, imgnum, timestamp, i, max_img, hidden)
+                    imgnum, APP_PFX, session_idx, imgnum, timestamp, i, max_img, hidden)
                 lRes.append(sLine)
             sHtml = sHtml.replace("@results@", "\n".join(lRes))
             sHtml = sHtml.replace("@resultdescr@", sResultDescr)
-            sHtml = sHtml.replace("@session_idx@", self.session_idx)
+            sHtml = sHtml.replace("@session_idx@", session_idx)
             oBack['status'] = "ok"
             # Set the status
             self.set_status("finish", "ready")

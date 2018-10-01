@@ -65,7 +65,7 @@ def alpha_image(img, points):
 def morph(src_img, src_points, dest_img, dest_points, 
           video, width=500, height=600, num_frames=20, fps=10, 
           out_frames=None, out_video=None, alpha=False, plot=False, 
-          obj=None, result_type="zero"):
+          obj=None, sessionid=None, result_type="zero"):
     """
     Create a morph sequence from source to destination image
     :param src_img: ndarray source image
@@ -90,8 +90,8 @@ def morph(src_img, src_points, dest_img, dest_points,
 
         # Check for a callback function
         if obj != None:
-            debugMsg("morph calls mix_callback session={}".format(obj.counter))
-            obj.mix_callback(obj.counter, percent, points)
+            debugMsg("morph calls mix_callback session={}".format(sessionid))
+            obj.mix_callback(sessionid, percent, points)
         else:
             debugMsg("morph has obj=None")
 
@@ -107,7 +107,8 @@ def morph(src_img, src_points, dest_img, dest_points,
     plt.show()
 
 def ru_morpher(imgpaths, width=500, height=600, num_frames=20, fps=10, \
-               out_frames=None, out_video=None, alpha=False, plot=False, obj=None):
+               out_frames=None, out_video=None, alpha=False, plot=False, 
+               obj=None, sessionid=None):
     """
     Create a morph sequence from multiple images in imgpaths
     :param imgpaths: array or generator of image paths
@@ -125,7 +126,7 @@ def ru_morpher(imgpaths, width=500, height=600, num_frames=20, fps=10, \
 
             morph(src_img, src_points, dest_img, dest_points, video, 
                   width, height, num_frames, fps, out_frames, out_video, alpha, plot, 
-                  obj=obj, result_type = "image")
+                  obj=obj, sessionid=sessionid, result_type = "image")
 
             # Set the new source = old destination
             src_img, src_points = dest_img, dest_points

@@ -17,6 +17,7 @@ var ru = (function ($, ru) {
         loc_keizerkeuze = 0,
         loc_interrupt = false,
         loc_answers = [],
+        loc_sSession = "",    // The session_idx we have been assigned
         mediaOptions = { audio: false, video: true},
         video = document.querySelector('#web_video'),
         canvas = document.querySelector('#web_canvas'),
@@ -26,7 +27,7 @@ var ru = (function ($, ru) {
         spanLead = document.querySelector("#lead_text"),
         width = 400,
         height = 0,
-        imgcount = 0,
+        loc_iSession = 0,     // This is the session_idx transformed into an integer
         loc_stage = "",
         button_list = null;
 
@@ -35,24 +36,29 @@ var ru = (function ($, ru) {
       // Take a picture and return the data
       // See: https://stackoverflow.com/questions/41575083/how-to-take-an-image-from-the-webcam-in-html/41575483
       takepicture: function () {
-        canvas.style.display = "block";
+        var my_canvas = ru.invites.get_canvas(),
+            my_video = ru.invites.get_video(),
+            my_width = ru.invites.get_width(),
+            my_height = ru.invites.get_height();
+
+        my_canvas.style.display = "block";
 
         // Double check the width/height
-        if (video !== null) {
-          width = video.clientWidth;
-          height = video.videoHeight / (video.videoWidth / width);
+        if (my_video !== null) {
+          my_width = my_video.clientWidth;
+          my_height = my_video.videoHeight / (my_video.videoWidth / my_width);
         }
 
         // Temporarily switch off the width here
-        video.style.display = "none";
+        my_video.style.display = "none";
 
         // Make sure we set the canvas to hold the picture
-        canvas.width = width;
-        canvas.height = height;
-        canvas.getContext('2d').drawImage(video, 0, 0, width, height);
+        my_canvas.width = my_width;
+        my_canvas.height = my_height;
+        my_canvas.getContext('2d').drawImage(my_video, 0, 0, my_width, my_height);
 
         // Put all the PNG data into [data]
-        var data = canvas.toDataURL('image/png');
+        var data = my_canvas.toDataURL('image/png');
 
         // Return the data
         return data;
@@ -110,16 +116,18 @@ var ru = (function ($, ru) {
         try {
           if (butMain !== null) {
             // Reset my imgcount
-            imgcount = 0;
+            loc_iSession = 0;
             // Issue a POST
             $.post(ajaxurl, null, function (response) {
               // Sanity check
               if (response !== undefined) {
                 // Get the definitions
-                imgcount = parseInt(response, 10);
-                console.log("get_imgcount: " + imgcount.toString());
+                loc_iSession = parseInt(response, 10);
+                console.log("get_imgcount: " + loc_iSession.toString());
+                // Also store the string
+                loc_sSession = response;
                 // Set it on the correct place
-                $(butMain).attr("picnum", imgcount.toString());
+                $(butMain).attr("picnum", loc_iSession.toString());
                 // If necessary call the next function
                 if (func_next !== undefined) {
                   func_next();
@@ -154,6 +162,11 @@ var ru = (function ($, ru) {
                 if ('html' in oResponse) {
                   // Load the response in the appropriate place
                   $("#pane_container").html(oResponse['html']);
+                  // Check if this response offers a new session_idx
+                  if ('session_idx' in oResponse) {
+                    loc_sSession = oResponse['session_idx'];
+                    loc_iSession = parseInt(loc_sSession, 10);
+                  }
                   // Perform the next function if defined
                   if (func_next !== undefined) {
                     func_next();
@@ -199,11 +212,13 @@ var ru = (function ($, ru) {
 
     // Methods that are exported for outside functions by [ru.invites]
     return {
-      startup : function() {
+      // Parameter-less startup function
+      startup: function () {
         ru.invites.init_events(1);
       },
       // Initialise the events 
       init_events: function (idx) {
+        var bOption1 = false;
 
         // Set default index
         if (idx == undefined) idx = 1;
@@ -233,15 +248,27 @@ var ru = (function ($, ru) {
               return alert('getUserMedia not supported in this browser.');
             }
 
-            navigator.getUserMedia(mediaOptions,
-              function (stream) {
-                video = document.querySelector('#web_video');
-                video.src = window.URL.createObjectURL(stream);
-              },
-              function (e) {
-                private_methods.showError("error2: ", e);
-                console.log(e);
-              });
+            if (!bOption1) {
+              navigator.mediaDevices.getUserMedia(mediaOptions
+                ).then(stream => { 
+                  video = document.querySelector("#web_video");
+                  // video.srcObject = stream;
+                  video.src = window.URL.createObjectURL(stream);
+                }).catch(error => { 
+                  private_methods.showError("error #2 init_events navigator.getUserMedia: ", error);
+                  console.log(error);
+                });
+            } else {
+              navigator.getUserMedia(mediaOptions,
+                function (stream) {
+                  video = document.querySelector("#web_video");
+                  video.src = window.URL.createObjectURL(stream);
+                },
+                function (e) {
+                  private_methods.showError("error #2 init_events navigator.getUserMedia: ", e);
+                  console.log(e);
+                });
+            }
 
             // Get current width and height
             if (video !== null) {
@@ -289,6 +316,13 @@ var ru = (function ($, ru) {
         //ru.invites.init_stage("start");
 
       },
+
+      // Getters to make some media stuff available to private_methods...
+      get_mediaOptions: function() { return mediaOptions;},
+      get_video: function () { return video; },
+      get_canvas: function () { return canvas; },
+      get_width: function () { return width; },
+      get_height: function () { return height; },
 
       media_success : function(stream) {
         var video = document.querySelector('#web_video');
@@ -377,6 +411,17 @@ var ru = (function ($, ru) {
         }
       },
 
+      // Go back to the user page
+      my_user: function() {
+        try {
+          $("#pane_container").removeClass("hidden");
+          $("#pane_info").addClass("hidden");
+          $("#back_button").addClass("hidden");
+        } catch (ex) {
+          private_methods.showError("my_user", ex);
+        }
+      },
+
       // Initialise the indicated stage
       init_stage: function (sStage) {
         var i = 1,
@@ -386,7 +431,7 @@ var ru = (function ($, ru) {
         try {
           // Initially clear the errors
           private_methods.clearError();
-          console.log("init_stage " + sStage + ": " + imgcount.toString());
+          console.log("init_stage " + sStage + ": " + loc_iSession.toString());
           // Find the indicated stage
           for (i = 0; i < button_list.length; i++) {
             oInfo = button_list[i];
@@ -423,119 +468,139 @@ var ru = (function ($, ru) {
 
           // Action depends on the stage
           switch (sStage) {
-            case "ack":   // Load the acknowledgements
+            case "ack":   // Load the acknowledgements page
+            case "about": // Load the 'about' page
             case "help":  // Show help
               data.push({'name': 'page', 'value': sStage});
               $.post(loc_appPfx + "post_page", data, function (response) {
                 if (response === "") {
-                  $(loc_errDiv).html("cannot load page ACK");
+                  $(loc_errDiv).html("cannot load page " + sStage);
                 } else {
-                  $("#pane_container").html(response);
+                  $("#pane_container").addClass("hidden");
+                  $("#pane_info").html(response);
+                  $("#pane_info").removeClass("hidden");
+                  $("#back_button").removeClass("hidden");
                 }
               });
               break;
             case "start": // Opening screen
+              $("#pane_container").removeClass("hidden");
+              $("#pane_info").addClass("hidden");
+              $("#back_button").addClass("hidden");
               // Make sure initialization happens (again)
               ru.invites.init_events(1);
               // Make sure the buttons are visible and enabled
               $(butMain).removeClass("hidden");
               $(butMain).removeClass("disabled");
-              // Load the correct information
+              // Load the correct information (which includes a new loc_iSession we receive)
               private_methods.load_stage(loc_appPfx + "post_start", data, function () {
-                // Make sure a new image count is fetched
-                private_methods.get_imgcount();
+                // Show this number
+                $("#session_number").html(loc_iSession.toString());
               });
               break;
             case "quiz":
               // For now inactivate the main button
               $(butMain).addClass("disabled");
+              // make sure that we use 'OUR' session index
+              data.push({ 'name': 'session_idx', 'value': loc_iSession });
+
               // Make sure we get the right image count
-              private_methods.get_imgcount(function () {
+              //private_methods.get_imgcount(function () {
+
+              // Check if stage hasn't changed
+              if (loc_stage !== "quiz") { return; }
+              // Snap the picture right now
+              ru.invites.handle_picture(loc_iSession, function () {
                 // Check if stage hasn't changed
                 if (loc_stage !== "quiz") { return; }
-                // Snap the picture right now
-                ru.invites.handle_picture(imgcount, function () {
-                  // Check if stage hasn't changed
-                  if (loc_stage !== "quiz") { return; }
-                  // Load the next page with this picture upon success
-                  private_methods.load_stage(loc_appPfx + "post_quiz", data,
-                    function () {
-                      // Check if stage hasn't changed
-                      if (loc_stage !== "quiz") { return; }
-                      // Next button is not disabled any longer
-                      $(butMain).removeClass("disabled");
-                      // Hide the 'next' button until the user has chosen an emperor
-                      $(butMain).addClass("hidden");
-                      // Allow the user to choose the alternative
-                      private_methods.allow_alternative(true);
-                      // Reset the answers
-                      loc_answers = [];
-                    },
-                    // Function if there is an error
-                    function () {
-                      // Make sure my image is not shown anymore
-                      $("#user_image").addClass("hidden");
-                      // Reveal the button
-                      $("#startagain").removeClass("hidden");
-                    }
-                  );
-                });
+                // Load the next page with this picture upon success
+                private_methods.load_stage(loc_appPfx + "post_quiz", data,
+                  function () {
+                    // Check if stage hasn't changed
+                    if (loc_stage !== "quiz") { return; }
+                    // Next button is not disabled any longer
+                    $(butMain).removeClass("disabled");
+                    // Hide the 'next' button until the user has chosen an emperor
+                    $(butMain).addClass("hidden");
+                    // Allow the user to choose the alternative
+                    private_methods.allow_alternative(true);
+                    // Press the first button of the first question
+                    // Reset the answers
+                    loc_answers = [];
+                  },
+                  // Function if there is an error
+                  function () {
+                    // Make sure my image is not shown anymore
+                    $("#user_image").addClass("hidden");
+                    // Reveal the button
+                    $("#startagain").removeClass("hidden");
+                  }
+                );
               });
+
+              //});
+
               break;
             case "descr":     // Show all the descriptions
               // For now inactivate the main button
               $(butMain).addClass("disabled");
-              // Make sure we get the right image count
-              private_methods.get_imgcount(function () {
-                // Check if stage hasn't changed
-                if (loc_stage !== "descr") { return; }
-                // Call the correct method
-                private_methods.load_stage(loc_appPfx + "post_descr", data, function () {
-                  // Next button is not disabled any longer
-                  $(butMain).removeClass("disabled");
-                },
-                // Function if there is an error 
-                function () {
-                  // Next button is not disabled any longer
-                  $(butMain).removeClass("disabled");
-                  // Make sure my image is not shown anymore
-                  $("#user_image").addClass("hidden");
-                  // Reveal the button
-                  $("#startagain").removeClass("hidden");
-                });
+
+              //// Make sure we get the right image count
+              //private_methods.get_imgcount(function () {
+
+              // Check if stage hasn't changed
+              if (loc_stage !== "descr") { return; }
+              // Call the correct method
+              private_methods.load_stage(loc_appPfx + "post_descr", data, function () {
+                // Next button is not disabled any longer
+                $(butMain).removeClass("disabled");
+              },
+              // Function if there is an error 
+              function () {
+                // Next button is not disabled any longer
+                $(butMain).removeClass("disabled");
+                // Make sure my image is not shown anymore
+                $("#user_image").addClass("hidden");
+                // Reveal the button
+                $("#startagain").removeClass("hidden");
               });
+              //});
               break;
             case "picture":
               // For now inactivate the main button
               $(butMain).addClass("disabled");
-              // Make sure we get the right image count
-              private_methods.get_imgcount(function () {
+
+              //// Make sure we get the right image count
+              //private_methods.get_imgcount(function () {
+
+              // Check if stage hasn't changed
+              if (loc_stage !== "picture") { return; }
+              // make sure that we use 'OUR' session index
+              data.push({ 'name': 'session_idx', 'value': loc_iSession });
+              // Snap the picture right now, using our 'OWN' loc_iSession (==loc_sSession)
+              ru.invites.handle_picture(loc_iSession, function () {
                 // Check if stage hasn't changed
                 if (loc_stage !== "picture") { return; }
-                // Snap the picture right now
-                ru.invites.handle_picture(imgcount, function () {
-                  // Check if stage hasn't changed
-                  if (loc_stage !== "picture") { return; }
-                  // Load the next page with this picture upon success
-                  private_methods.load_stage(loc_appPfx + "post_picture", data, 
-                    function () {
-                      // Check if stage hasn't changed
-                      if (loc_stage !== "picture") { return; }
-                      // Next button is not disabled any longer
-                      $(butMain).removeClass("disabled");
-                      // Hide the 'next' button until the user has chosen an emperor
-                      $(butMain).addClass("hidden");
-                    },
-                    // Function if there is an error
-                    function () {
-                      // Make sure my image is not shown anymore
-                      $("#user_image").addClass("hidden");
-                      // Reveal the button
-                      $("#startagain").removeClass("hidden");
-                    }
-                  );
-                });
+                // Load the next page with this picture upon success
+                private_methods.load_stage(loc_appPfx + "post_picture", data, 
+                  function () {
+                    // Check if stage hasn't changed
+                    if (loc_stage !== "picture") { return; }
+                    // Next button is not disabled any longer
+                    $(butMain).removeClass("disabled");
+                    // Hide the 'next' button until the user has chosen an emperor
+                    $(butMain).addClass("hidden");
+                  },
+                  // Function if there is an error
+                  function () {
+                    // Make sure my image is not shown anymore
+                    $("#user_image").addClass("hidden");
+                    // Reveal the button
+                    $("#startagain").removeClass("hidden");
+                  }
+                );
               });
+              //});
               break;
             case "choose":
               // Make sure the buttons are visible
@@ -546,6 +611,8 @@ var ru = (function ($, ru) {
               data.push({ "name": "id", "value": loc_keizerkeuze });
               // Set the list of q/a
               data.push({ "name": "qalist", "value": JSON.stringify( loc_answers) });
+              // make sure that we use 'OUR' session index
+              data.push({ 'name': 'session_idx', 'value': loc_iSession });
               // Load the correct page 
               private_methods.load_stage(loc_appPfx + "post_choose", data, function () {
                 // Next button is not disabled any longer
@@ -557,6 +624,10 @@ var ru = (function ($, ru) {
               $(butMain).removeClass("hidden");
               // For now inactivate the main button
               $(butMain).addClass("disabled");
+              // make sure that we use 'OUR' session index
+              data.push({ 'name': 'session_idx', 'value': loc_iSession });
+              // Also make sure the emperor we 'chose' is in here
+              data.push({ 'name': 'keizer_id', 'value': loc_keizerkeuze });
               // Start up a process to receive status feedback after a few milliseconds
               setTimeout(function () { ru.invites.show_status("mix"); }, 200);
               // Start up the mixer: the facemorphing process
@@ -601,9 +672,13 @@ var ru = (function ($, ru) {
           // Try to find the status div
           elStatus = $("#py_status");
           elProgress = $("#py_progress");
+          $(elProgress).removeClass("hidden");
           elBar = $(elProgress).find(".progress-bar").first();
           // Indicate who we are to get the correct status
-          data.push({"name": "session_id", "value": imgcount });
+          data.push({"name": "session_id", "value": loc_iSession });
+          //  =========== DEBUG ============
+          console.log("show_status 0: " + parseInt(loc_iSession, 10));
+          // ===============================
           // Get the status
           $.post(loc_appPfx + "post_status", data, function (response) {
             var oResponse = null,
@@ -613,7 +688,7 @@ var ru = (function ($, ru) {
               oResponse = JSON.parse(response);
               if ('status' in oResponse && 'msg' in oResponse) {
                 //  =========== DEBUG ============
-                console.log("show_status 1: " + oResponse['msg']);
+                console.log("show_status 1: " + oResponse['msg'] + " s=" + oResponse['status']);
                 // ===============================
 
                 // Combine the status and the message
@@ -639,8 +714,9 @@ var ru = (function ($, ru) {
                     break;
                   case "mix":
                   case "callback":
+                  case "picture":
                     //  =========== DEBUG ============
-                    console.log("show_status 3: mix");
+                    console.log("show_status 3: "+oResponse['status']);
                     // ===============================
                     if ('ptc' in oResponse) {
                       percentage = oResponse['ptc'];

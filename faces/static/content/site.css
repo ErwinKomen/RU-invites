@@ -1106,4 +1106,16 @@ table tr.selected:hover {
 }
 #header a:hover {
   color: #0066cc;
+  cursor: pointer; 
+}
+
+.back-button a {
+  color: white !important;
+  background-color: #d2322d;
+  border-color: #ac2925;
+}
+.back-button a:hover {
+  text-decoration: none;
+  cursor: pointer;
+  color: yellow !important;
 }

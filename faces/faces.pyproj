@@ -75,6 +75,7 @@
     <Content Include="static\content\invites_faces.png" />
     <Content Include="static\scripts\crpstudio.htable.js" />
     <Content Include="static\scripts\invites.js" />
+    <Content Include="templates\about.html" />
     <Content Include="templates\ack.html" />
     <Content Include="templates\helpdoc.html" />
     <Content Include="templates\keizer_agr.html" />
