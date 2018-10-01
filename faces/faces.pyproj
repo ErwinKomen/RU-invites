@@ -69,11 +69,14 @@
   </ItemGroup>
   <ItemGroup>
     <Content Include="app.conf" />
+    <Content Include="static\content\2018_MatchRomeHandleiding.pdf" />
     <Content Include="static\content\aug-1.jpg" />
     <Content Include="static\content\aug-2.jpg" />
     <Content Include="static\content\invites_faces.png" />
     <Content Include="static\scripts\crpstudio.htable.js" />
     <Content Include="static\scripts\invites.js" />
+    <Content Include="templates\ack.html" />
+    <Content Include="templates\helpdoc.html" />
     <Content Include="templates\keizer_agr.html" />
     <Content Include="templates\keizer_cri.html" />
     <Content Include="templates\keizer_jul.html" />

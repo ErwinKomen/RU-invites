@@ -423,6 +423,17 @@ var ru = (function ($, ru) {
 
           // Action depends on the stage
           switch (sStage) {
+            case "ack":   // Load the acknowledgements
+            case "help":  // Show help
+              data.push({'name': 'page', 'value': sStage});
+              $.post(loc_appPfx + "post_page", data, function (response) {
+                if (response === "") {
+                  $(loc_errDiv).html("cannot load page ACK");
+                } else {
+                  $("#pane_container").html(response);
+                }
+              });
+              break;
             case "start": // Opening screen
               // Make sure initialization happens (again)
               ru.invites.init_events(1);

@@ -1,0 +1,96 @@
+﻿<h2>1. Inleiding</h2>
+<p>Dit document beschrijft hoe de website ‘a match made in rome’ gebruikt kan worden. 
+  De site bepaalt hoe het gezicht van een gebruiker ‘overvloeit’ in het gezicht van een Romeinse keizer.</p>
+
+<h2>2. Snelle start</h2>
+<p>Een volledige cyclus van het programma ziet er als volgt uit:
+
+  <table>
+    <thead><tr><th></th><th>Knop</th><th>Uitleg</th></tr></thead>
+    <tbody>
+      <tr><td>1</td><td><i>webcam</i></td><td>Ga naar de site en geef de webcam toestemming</td></tr>
+      <tr><td>2</td><td><code>Maak mijn portret</code></td><td>Kijk goed in de camera en druk op de knop</td></tr>
+      <tr><td>3</td><td><i>eerst de quiz</i></td><td>Beantwoord de 9 vragen</td></tr>
+      <tr><td>4</td><td><code>Laat maar zien</code></td><td>Druk op de knop en de winnende keizer verschijnt</td></tr>
+      <tr><td>5</td><td><code>Combineer</code></td><td>De overgang tussen de foto’s wordt berekend</td></tr>
+      <tr><td>6</td><td><code>Mail dit beeld naar</code></td><td>Beeld en keizerbeschrijving per email versturen</td></tr>
+      <tr><td>7</td><td><code>Begin opnieuw</code></td><td>Ga terug naar stap #1</td></tr>
+    </tbody>
+  </table>
+</p>
+
+<h3>2.1 Webcam toestemming verlenen</h3>
+<p>Als het goed is vraagt de browser om toestemming om de webcam te mogen gebruiken.</p>
+<div style="width: 600px; height: 120px; overflow: hidden;">
+  <img src="static/content/helpimg1.png" style="width: 600px;" />
+</div>
+<p>Hoe de vraag om toestemming er uit ziet hangt af van de browser en van de webcam die op de laptop of computer aanwezig is. Er dient simpelweg op de knop “Geselecteerde apparaat delen” geklikt te worden.</p>
+
+<h3>2.2	Maak mijn portret</h3>
+Het beste resultaat wordt verkregen door recht in de webcam te kijken. De beelden van de keizers zijn allemaal in vooraanzicht, en de gezichtsherkenningssoftware werkt ook met de informatie (ogen, neus, mond) die in het vooraanzicht aanwezig is.
+
+<h3>2.3	De quiz</h3>
+<p>De keizerquiz bestaat uit negen vragen die allemaal beantwoord dienen te worden.</p>
+<p>Voor de <b>eerste</b> vraag dient op het ‘+’ teken links naast de [1] geklikt te worden. Daarmee worden de antwoorden zichtbaar.</p>
+<p>Klik op het juiste antwoord voor de vraag, lees de volgende vraag, en klik dan op het juiste antwoord voor die vraag. Ga hiermee door totdat alle vragen beantwoord zijn. Na het beantwoorden van de éne vraag wordt automatisch de volgende vraag ‘geopend’, en worden de andere vragen ‘gesloten’.</p>
+<p>De antwoorden (a…e) die gekozen zijn verschijnen rechts naast de vragen.</p>
+<p>De vragen kunnen ook in een andere <b>volgorde</b> beantwoord worden. Klik voor iedere vraag het ‘+’ teken links naast het vraagnummer aan om de antwoorden te zien.</p>
+<p>De antwoorden kunnen achteraf ook <b>gewijzigd</b> worden. Klik  op het ‘+’ teken links naast de vraag waarvan het antwoord gewijzigd dient te worden. Klik vervolgens op het nieuwe antwoord. De rechterkolom wordt bijgewerkt.</p>
+<p>N.B: de knop <code>Laat maar zien</code> verschijnt pas wanneer alle antwoorden beantwoord zijn.</p>
+
+<h3>2.4	Laat maar zien</h3>
+<p>Wanneer alle quizvragen beantwoord zijn kan op de knop <code>Laat maar zien</code> geklikt worden. Daarmee verschijnt het beeld van de winnende keizer. Bovendien staat er hoeveel punten de antwoorden op de vragen voor deze keizer op hebben geleverd. Bij iedere vraag krijgt een subset van de keizers een punt erbij, en de keizer die na afloop het meeste aantal punten heeft ontvangen is de winnaar.</p>
+
+<h3>2.5	Combineer</h3>
+<p>Door op de knop <code>Combineer</code> te klikken wordt het beeldverwerkingsprogramma in gang gezet. Hiermee worden 18 overgangsbeelden bepaald van het gezicht op de webcam naar het gezicht op het keizerbeeld.</p>
+<p>Een voortgangsbalk toont de voortgang van de berekening.</p>
+<p>Wanneer de berekening voltooid is verschijnt er <b>links</b> in het beeld een ‘Mixer’: met behulp van de schuifbalk kunnen alle 18 overgangsbeelden bekeken worden, geprojecteerd op de juiste plaats in het keizerbeeld.</p>
+<p><b>Rechts</b> in het scherm wordt informatie over de gekozen keizer getoond.</p>
+
+<h3>2.6	Mail dit beeld</h3>
+<p>De gebruiker kan het gecombineerde beeld dat getoond wordt opsturen naar een door hem gekozen emailadres. Wanneer er op <code>Mail dit beeld naar</code> geklikt wordt verschijnt een formulier waarin het emailadres ingetikt kan worden. Bij aanklikken van <code>Versturen</code> wordt de foto, samen met de keizerbeschrijving, opgestuurd naar het ingevoerde adres.</p>
+<p>De combinatiefoto wordt <em>in</em> de email opgenomen.</p>
+
+<h3>2.7	Begin opnieuw</h3>
+<p>Met de knop <code>Begin opnieuw</code> komt de gebruiker weer terug bij het eerste scherm, waar opnieuw aan de webcam toestemming verleend dient te worden (zie 2.1).</p>
+<p>N.B: Het webcambeeld en alle 18 tussenbeelden worden van de server verwijderd zodra de gebruiker <code>Begin opnieuw</code> aanklikt.</p>
+
+<h2>3.	Opties en informatie</h2>
+<p>Naast de reguliere cyclus om door het programma te gaan zijn er nog wat extra opties, en wordt er in deze sectie nog wat meer informatie gegeven voor de geïnteresseerden.</p>
+
+<h3>3.1	De quiz omzeilen</h3>
+<div>
+  <div class="col-md-6" style="padding-left: 0px;">
+    <p>
+      Het is ook mogelijk om de quiz te omzeilen en rechtstreeks een keizer uit te kiezen.
+      Dat kan gedaan worden door op punt ‘3’ (zie de tabel in sectie 2), wanneer de quizvragen verschijnen, het alternatief <code>Ik kies zelf</code> te kiezen dat aanwezig is in de knop <code>Begin opnieuw</code>.
+    </p>
+    <p>Er verschijnt nu een overzicht van de keizers en keizerinnen. Kies de juiste keizer door op de ‘+’ tekens te klikken die van toepassing zijn en door dan de keizer aan te klikken die gewenst is.</p>
+  </div>
+  <div class="col-md-6">
+    <div class="pull-right"><img src="static/content/helpimg2.png" style="width: 500px;" /></div>
+    
+    <div class="pull-right"><img src="static/content/helpimg3.png" style="width: 400px;" /></div>
+    </div>
+</div>
+
+<h3>3.2	Kies zelf</h3>
+De groene knop <code>Kies zelf</code> verschijnt bij punt ‘6’ (zie de tabel in sectie 2), wanneer het gecombineerde beeld zichtbaar is. Zie de verdere uitleg in 3.1.
+
+<h3>3.3	Puntensysteem</h3>
+<p>Bij iedere vraag krijgt een subset van de keizers een punt erbij, en de keizer die na afloop het meeste aantal punten heeft ontvangen is de winnaar. Het is niet zo dat bepaalde vragen meer of minder punten opleveren.</p>
+<p>Per keizer kunnen er meerdere beelden (soms wel drie) aanwezig zijn. Het gekozen beeld wordt volledig random geselecteerd uit de aanwezige beelden van die keizer.</p>
+
+<h2>4.	Acknowledgements</h2>
+<p>De site is ontwikkeld in het kader van het project <a href="https://www.ru.nl/constraintsandtradition">Constrains and tradition</a>. 
+  Sam Heijnen (Radboud University Nijmegen, department of History) heeft de tekst over de keizers verzorgd, en de beelden komen van Carole Raddato.</p>
+<p>De webapplicatie is ontwikkeld door Erwin R. Komen (Radboud Univeristy Nijmegen, faculty of arts, TSG).</p>
+
+<h2>5.	Over de app</h2>
+<p>De webapplicatie is geschreven in Python en bouwt voort op het <a href="https://cherrypy.org/">cherrypy</a> pakket. 
+  De beeldverwerkingscode gebruikt ‘facemorpher’ (Zie <a href="https://github.com/alyssaq/face_morpher">github</a>; <a href="http://alyssaq.github.io/mit-license/">MIT license</a>). 
+  Deze code gebruikt op haar beurt weer andere software, en dan met name <a href="https://pypi.org/project/opencv-python/">OpenCV</a> (een C++ project dat beschikbaar is gemaakt voor Python). 
+  De facemorpher software is aangepast om ieder gemorphed beeld op de juiste plek en met het juiste masker te combineren met het keizerbeeld op de achtergrond.</p>
+
+<h2>6.	Contact</h2>
+<p>De webapplicatie ‘a match made in Rome’ is ontwikkeld door de <a href="https://www.ru.nl/humanitieslab/technical-support-group/general/">Technical Support Group</a> van de Letterenfacultaat van de Radboud Universiteit Nijmegen. Wij staan u graag ten dienste met onze wetenschappelijke programmeerkennis. Of het nu gaat om even meekijken en adviseren bij uw eigen pogingen of het zorgen voor complexe oplossingen in uw onderzoek - wij willen met alle plezier helpen.</p>

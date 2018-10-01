@@ -428,6 +428,23 @@ class Root(object):
         return self.session_idx
 
     @cherrypy.expose
+    def post_page(self, page):
+        """Return a particular page from the templates"""
+
+        try:
+            sHtml = ""
+            if page == "ack":
+                t = "templates/ack.html"
+            elif page == "help":
+                t = "templates/helpdoc.html"
+            if t!="":
+                sHtml = treat_bom( get_template_unit(t))
+            return sHtml
+        except:
+            sHtml = get_error_message()
+            DoError()
+
+    @cherrypy.expose
     def post_status(self, session_id=None):
         # Find the current status object
         oStatus = self.get_status_object(session_id)

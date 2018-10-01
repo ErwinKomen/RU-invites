@@ -13,6 +13,8 @@
   /* padding-top: 0px !important; /* */
   padding: 20px !important;
   margin-bottom: 2px !important;
+  top: -15px;
+  position: relative;
 }
 .jumbotron h1 {
   margin-top: 5px;
@@ -1066,4 +1068,42 @@ table tr.selected:hover {
   float: none;
   display: table-cell;
   vertical-align: bottom;
+}
+
+.metanav {
+  float: right;
+  height: 1.5em;
+  padding: 2px 15px;
+  margin: 0;
+  margin-bottom: 0;
+  color: #222;
+  background: none;
+  list-style-type: none;
+  font-size: 12px;
+}
+
+/*
+.metanav ul {
+  float: right;
+}*/
+
+.metanav li {
+  float: left;
+  font-size: 12px;
+  margin: 0;
+  padding: 0;
+}
+
+.metanav a, .metanav span {
+  display: block;
+  margin: .25em .5em;
+  line-height: 13px;
+}
+
+#header a {
+  color: black;
+  text-decoration: none;
+}
+#header a:hover {
+  color: #0066cc;
 }
