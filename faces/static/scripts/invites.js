@@ -362,6 +362,39 @@ var ru = (function ($, ru) {
 
       },
 
+      do_print: function (elStart) {
+        var img = null,
+            imgSrc = "",
+            lHtml = [],
+            sHtml = "",
+            newWin = null;
+
+        try {
+          // Get the selected image
+          img = $(".result-pic").not(".hidden").first();
+          imgSrc = img.attr("src");
+          imgSrc = imgSrc.replace("amatch", "https://applejack.science.ru.nl/amatch");
+          // Make html
+          // lHtml.push("<html><body onload=\"window.print();\">");
+          lHtml.push("<html><body>");
+          lHtml.push("<div><img src='" + imgSrc + "' width='100%;'></div>");
+          lHtml.push("</body></html>");
+          sHtml = lHtml.join("\n");
+          // Create a new window
+          newWin = window.open('', 'Print-window');
+          newWin.document.open();
+          newWin.document.write(sHtml);
+          newWin.print();
+          //newWin.document.close();
+          //setTimeout(function () { newWin.close(); }, 10);
+          // Print this picture
+          //img.parent().print();
+
+        } catch (ex) {
+          private_methods.showError("do_print", ex);
+        }
+      },
+
       // Send an email
       send_mail: function (elStart) {
         var frm = null,
