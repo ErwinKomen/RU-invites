@@ -540,11 +540,11 @@ class Root(object):
         template = "templates/keizer_{}.html".format( self.keizer_abbr)
         sDescr = treat_bom( get_template_unit(template))
         # Change all the image location references
-        sBase = "http://localhost:6001"
-        iPos = sDescr.find("static/content/")
-        while iPos >= 0:
-            sDescr = sDescr[:iPos] + sBase + "/" + sDescr[iPos:]
-            iPos = sDescr.find("static/content/", iPos + len(sBase) + 5)
+        # sBase = "http://localhost:6001"
+        sBase = "https://applejack.science.ru.nl"
+
+        # Make all replacements
+        sDescr = sDescr.replace("/amatchmadeinrome/static", sBase + "/amatchmadeinrome/static")
 
         # Get the full name of the emperor
         sName = "(niet gevonden)"
@@ -558,7 +558,7 @@ class Root(object):
                 sName = lEmp[0]['keizer_naamNL']
 
         # Prepare the fields
-        mail_from = "ekomen@science.ru.nl"
+        mail_from = "ekomen@science.ru.nl" # "amatchmadeinrome@science.ru.nl" # "ekomen@science.ru.nl"
         mail_to = input_email
         subject = "Radboud - keizerbeeld"
         boundary_marker = "RADBOUD_INVITES_MARKER_OF_MAIL"
@@ -806,6 +806,7 @@ class Root(object):
 
         # Respond appropriately
         oBack['status'] = "ok"
+        oBack['keizerkeuze'] = id
         oBack['html'] = sHtml
         return json.dumps(oBack)
 

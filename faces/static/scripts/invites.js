@@ -18,7 +18,7 @@ var ru = (function ($, ru) {
         loc_interrupt = false,
         loc_answers = [],
         loc_sSession = "",    // The session_idx we have been assigned
-        mediaOptions = { audio: false, video: true},
+        mediaOptions = { audio: false, video: { facingMode: "user" } },
         video = document.querySelector('#web_video'),
         canvas = document.querySelector('#web_canvas'),
         buttoncontent = document.querySelector('#buttoncontent'),
@@ -166,6 +166,9 @@ var ru = (function ($, ru) {
                   if ('session_idx' in oResponse) {
                     loc_sSession = oResponse['session_idx'];
                     loc_iSession = parseInt(loc_sSession, 10);
+                  }
+                  if ('keizerkeuze' in oResponse) {
+                    loc_keizerkeuze = oResponse['keizerkeuze'];
                   }
                   // Perform the next function if defined
                   if (func_next !== undefined) {

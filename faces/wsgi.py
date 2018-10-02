@@ -21,7 +21,7 @@ if SERVE_PORT != 6001:
     tempfile.tempdir = os.path.abspath(os.path.join(BASE_DIR, "writable/faces/tmp"))
     # os.environ['MPLCONFIGDIR'] = tempfile.gettempdir()
     # Show what has happened
-    print("wsgi.py: the tempdir has been set to: {}".format(tempfile.gettempdir()), file=sys.stderr)
+    print("WSGI.py: the tempdir has been set to: {}".format(tempfile.gettempdir()), file=sys.stderr)
     # print("wsgi.py: environment variable MPLCONFIGDIR is: {}".format(os.environ.get('MPLCONFIGDIR')), file=sys.stderr)
 
 # See the cherrypy documentation section 8.7.4 uwsgi
