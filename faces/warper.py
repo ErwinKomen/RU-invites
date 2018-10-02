@@ -5,6 +5,8 @@ import utils
 import cv2
 from facemorpher import blender
 
+bUseGrayScale = False    # If necessary to use grayscale
+
 def bilinear_interpolate(img, coords):
     """ Interpolates over every image channel
     http://en.wikipedia.org/wiki/Bilinear_interpolation
@@ -132,6 +134,10 @@ def warp_image(src_img, src_points, dest_points, dest_shape, dtype=np.uint8,
             
             # Step 2.e: replace the contour with the averaged
             result_img[np.where(contour==255)] = avg_img[np.where(contour==255)]
+
+            if bUseGrayScale:
+                result_img = cv2.cvtColor(result_img, cv2.COLOR_RGB2GRAY)
+                # cv2.COLOR_RGB2GRAY
 
         return result_img
     except:

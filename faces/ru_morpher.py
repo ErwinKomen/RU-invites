@@ -24,7 +24,6 @@ from facemorpher import videoer
 # RU-specific imports
 from utils import get_error_message, DoError, debugMsg
 
-
 def check_for_image_points(path):
     img = cv2.imread(path)
     points = locator.face_points(img)
@@ -100,6 +99,7 @@ def morph(src_img, src_points, dest_img, dest_points,
 
         plt.plot_one(average_face)
         plt.save(average_face)
+
         video.write(average_face)
 
     plt.plot_one(dest_img)
