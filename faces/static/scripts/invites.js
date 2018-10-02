@@ -528,6 +528,7 @@ var ru = (function ($, ru) {
                     // Allow the user to choose the alternative
                     private_methods.allow_alternative(true);
                     // Press the first button of the first question
+                    $(".func-view tbody tr td").first().click();
                     // Reset the answers
                     loc_answers = [];
                   },
