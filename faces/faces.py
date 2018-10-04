@@ -348,10 +348,81 @@ class Root(object):
                 print("read_activities open", file=sys.stderr)
                 lData = fin.readlines()
                 print("read_activities len={}".format(len(lData)), file=sys.stderr)
-                lBack = [json.loads(x.strip()) for x in lData]
+                lBack = [json.loads(x.strip().strip(',')) for x in lData]
         except:
             sHtml = get_error_message()
             DoError("read_activities error: ")
+        return lBack
+
+    def list_activities(self, lAct):
+        """Check the activities and return a list with an overview by day"""
+
+        lBack = []
+        try:
+            # <th>Site</th><th>start</th><th>quiz</th><th>choose</th><th>mix</th><th>mail</th><th>picture</th><th>manual</th>
+            sDate = ""
+            oCount = {'date': '', 'index': 0, 'start': 0, 'quiz': 0, 'choose': 0, 'mix': 0, 'mail': 0, 'picture': 0, 'manual': 0}
+            oRow = json.loads(json.dumps(oCount))
+            # walk all the activities
+            for oAct in lAct:
+                sDateThis = oAct['date'].split("_")[0]
+                if sDate != sDateThis:
+                    # Process previous row
+                    if sDate != "":
+                        lBack.append(oRow)
+                    # Start a new row
+                    oRow = json.loads(json.dumps(oCount))
+                    sDate = sDateThis
+                    oRow['date'] = sDate
+                # Add the information for this event
+                if oAct['act'] in oRow:
+                    oRow[oAct['act']] += 1
+            # Add the last row
+            lBack.append(oRow)
+        except:
+            sHtml = get_error_message()
+            DoError("list_activities error: ")
+
+        return lBack
+
+    def list_visitors(self, lAct):
+        """Check the visiting IPs and return a list with an overview by day"""
+
+        lBack = []
+        try:
+            # <th>Site</th><th>start</th><th>quiz</th><th>choose</th><th>mix</th><th>mail</th><th>picture</th><th>manual</th>
+            sDate = ""
+            oVisit = {'date': '', 'iplist': []}
+            iplist = []
+            oRow = json.loads(json.dumps(oVisit))
+            # walk all the activities
+            for oAct in lAct:
+                sDateThis = oAct['date'].split("_")[0]
+                if sDate != sDateThis:
+                    # Process previous row
+                    if sDate != "":
+                        print("list_visitors iplist={}".format(json.dumps(iplist)), file=sys.stderr)
+                        oRow['iplist'] = iplist
+                        lBack.append(oRow)
+                    # Start a new row
+                    oRow = json.loads(json.dumps(oVisit))
+                    sDate = sDateThis
+                    oRow['date'] = sDate
+                    iplist = []
+                    print("New date {}".format(sDate), file=sys.stderr)
+                # Add the information for this event
+                sIp = oAct['ip']
+                # print("IP {} in list {}".format(sIp, (sIp in iplist)), file=sys.stderr)
+                if  sIp not in iplist:
+                    iplist.append(sIp)
+            # Add the last row
+            print("list_visitors iplist={}".format(json.dumps(iplist)), file=sys.stderr)
+            oRow['iplist'] = iplist
+            lBack.append(oRow)
+        except:
+            sHtml = get_error_message()
+            DoError("list_visitors error: ")
+
         return lBack
 
     def full_path(self, sFile):
@@ -557,14 +628,46 @@ class Root(object):
 
                 # Read the data
                 lAct = self.read_activities()
-                iTotal = len(lAct)
 
+                # First get an overview of the activities
+                lOview = self.list_activities(lAct)
+
+                # COnvert data to html
                 lHtml = []
-                lHtml.append("<tr><td>Totaal:</td><td>{}</td></tr>".format(len(lAct)))
+                for oRow in lOview:
+                    lHtml.append("<tr>")
+                    lHtml.append("<td align='right'>{}</td>".format(oRow['date']))
+                    lHtml.append("<td align='right'>{}</td>".format(oRow['index']))
+                    lHtml.append("<td align='right'>{}</td>".format(oRow['start']))
+                    lHtml.append("<td align='right'>{}</td>".format(oRow['quiz']))
+                    lHtml.append("<td align='right'>{}</td>".format(oRow['choose']))
+                    lHtml.append("<td align='right'>{}</td>".format(oRow['mix']))
+                    lHtml.append("<td align='right'>{}</td>".format(oRow['mail']))
+                    lHtml.append("<td align='right'>{}</td>".format(oRow['picture']))
+                    lHtml.append("<td align='right'>{}</td>".format(oRow['manual']))
+                    lHtml.append("</tr>")
 
                 # Fill the variables
                 sHtml = sHtml.replace("@act_types@", "\n".join(lHtml))
 
+                # Now get an overview of the IP addresses per day
+                lVisitors = self.list_visitors(lAct)
+
+                # COnvert data to html
+                lHtml = []
+                for oRow in lVisitors:
+                    if 'iplist' in oRow:
+                        print("post_act #1", file=sys.stderr)
+                        iplist = oRow['iplist']
+                        print("post_act: iplist is in oRow {}".format(len(iplist)), file=sys.stderr)
+                        for sIP in iplist:
+                            lHtml.append("<tr>")
+                            lHtml.append("<td>{}</td>".format(oRow['date']))
+                            lHtml.append("<td align='right'>{}</td>".format(sIP))
+                            lHtml.append("</tr>")
+
+                # Fill the variables
+                sHtml = sHtml.replace("@act_ips@", "\n".join(lHtml))
 
                 # Return the page
                 oBack['status'] = "ok"
