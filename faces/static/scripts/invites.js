@@ -256,9 +256,19 @@ var ru = (function ($, ru) {
                 ).then(stream => { 
                   video = document.querySelector("#web_video");
                   // video.srcObject = stream;
-                  video.src = window.URL.createObjectURL(stream);
+                  try {
+                    video.src = window.URL.createObjectURL(stream);
+                  } catch (ex) {
+                    console.log("navigator.mediaDevices.getUserMedia: trying video.srcObject option...");
+                    try {
+                      // Attempt using srcObject
+                      video.srcObject = stream;
+                    } catch (ex_nexted) {
+                      private_methods.showError("error #1-n init_events navigator.mediaDevices.getUserMedia: ", error);
+                    }
+                  }
                 }).catch(error => { 
-                  private_methods.showError("error #2 init_events navigator.getUserMedia: ", error);
+                  private_methods.showError("error #2 init_events navigator.mediaDevices.getUserMedia: ", error);
                   console.log(error);
                 });
             } else {
@@ -268,7 +278,7 @@ var ru = (function ($, ru) {
                   video.src = window.URL.createObjectURL(stream);
                 },
                 function (e) {
-                  private_methods.showError("error #2 init_events navigator.getUserMedia: ", e);
+                  private_methods.showError("error #3 init_events navigator.getUserMedia: ", e);
                   console.log(e);
                 });
             }
@@ -854,6 +864,8 @@ var ru = (function ($, ru) {
 
             // Signal this choice of emperor to the HOST
             data.push({ "name": "id", "value": loc_keizerkeuze });
+            // Also make sure the session is passed on
+            data.push({ "name": "session_idx", "value": loc_sSession });
             $.post(loc_appPfx + "post_manual", data, function (response) {
               var oResponse = null,
                   bOk = false;

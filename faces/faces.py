@@ -1,5 +1,6 @@
 import cherrypy
 # from cherrypy import tools
+from cherrypy import request
 import io, os, sys
 import cv2, re
 import json
@@ -25,6 +26,7 @@ APP_PFX = SUBDOMAIN.strip("/") + "/"
 OUT_FRAMES = "static/tmp"   # os.path.abspath(os.path.join(WRITABLE, "tmp"))  # "static/tmp"
 DATA_DIR = "static/data"
 STAT_FILE = "static/tmp/status.json"
+ACTIVITY_FILE = "static/tmp/activities.json"
 
 MAX_SESSION = 50        # Maximum amount of sessions to have at any one time
 
@@ -265,6 +267,7 @@ class Root(object):
     out_frames = OUT_FRAMES                     # Directory where the output images are stored
     data_dir = DATA_DIR                         # Directory where JSON data is stored
     status_file = os.path.abspath(os.path.join(os.getcwd(), STAT_FILE))
+    activities_file = os.path.abspath(os.path.join(os.getcwd(), ACTIVITY_FILE))
     status_list = []
     imgpaths = []
     counter = 1
@@ -305,8 +308,34 @@ class Root(object):
     ]
 
     def __init__(self, **kwargs):
+        self.log_activity("init")
         # print("Root.ini: environment variable MPLCONFIGDIR is: {}".format(os.environ.get('MPLCONFIGDIR')), file=sys.stderr)
         return super(Root, self).__init__(**kwargs)
+
+    def log_activity(self, sActivity="", sSession = "", keizer_id=None):
+        """Log the indicated activity into the activities JSON file"""
+        if sActivity != "":
+            # Get the requesting IP
+            
+            try:
+                ip = cherrypy.request.remote.ip
+                # ip = request.environ.get('HTTP_X_FORWARDED_FOR') or request.environ.get('REMOTE_ADDR')
+            except:
+                ip = "error"
+            # Get the time
+            tstamp = get_current_time_as_string()
+            # Create object
+            oEvent = {}
+            oEvent['ip'] = ip
+            oEvent['date'] = tstamp
+            oEvent['act'] = sActivity
+            oEvent['session'] = sSession
+            if keizer_id != None:
+                oEvent['keizer'] = keizer_id
+            sEvent = json.dumps(oEvent)
+            # Add object to file
+            with io.open(self.activities_file, "a") as fout:
+                fout.write(sEvent + ",\n")
 
     def full_path(self, sFile):
         sFull = os.path.abspath(os.path.join(self.root_path, sFile))
@@ -380,6 +409,8 @@ class Root(object):
         # Create a session_index string
         self.session_idx = str(self.counter)
 
+        self.log_activity("index")
+
         # Initialize a list of status objects
         for i in range(0,MAX_SESSION):
             self.status_list.append({'status': 'empty', 'msg': '', 'count': i})
@@ -415,6 +446,9 @@ class Root(object):
 
         # Create a session_index string
         newSessionIdx = self.get_new_session()
+
+        # Log this activity
+        self.log_activity("start", newSessionIdx)
 
         # Clear the CACHE for this image
         prepare_img_dir(self.out_frames, newSessionIdx)
@@ -616,6 +650,8 @@ class Root(object):
             smtpObj.sendmail(mail_from, mail_to, message)
             smtpObj.quit()
             debugMsg("post_mail #2")
+            # Log this activity
+            self.log_activity("mail", mail_to)
         except:
             sMsg = get_error_message()
             oResponse['status'] = "error"
@@ -677,6 +713,9 @@ class Root(object):
         # Set the status
         self.set_status("picture", "img_name={}".format(img_name))
 
+        # Log this activity
+        self.log_activity("picture", session_idx)
+
         if bHasPoints:
             # Respond appropriately
             oBack['status'] = "ok"
@@ -707,6 +746,9 @@ class Root(object):
 
         # Set the status
         self.set_status("quiz", "img_name={}".format(img_name))
+
+        # Log this activity
+        self.log_activity("quiz", session_idx)
 
         if bHasPoints:
             # Respond appropriately
@@ -742,6 +784,10 @@ class Root(object):
             self.imgpaths.clear()
             self.imgpaths.append(self.full_path(img_self))
             self.imgpaths.append(self.full_path(img_keizer))
+
+            # Log this activity
+            self.log_activity("manual", session_idx, id)
+
         except:
             sMsg = get_error_message()
             print("post_manual error: ".format(sMsg), file=sys.stderr)
@@ -803,6 +849,9 @@ class Root(object):
 
         # Set the status
         self.set_status("picture", "img_keizer={}".format(img_keizer))
+
+        # Log this activity
+        self.log_activity("choose", session_idx, id)
 
         # Respond appropriately
         oBack['status'] = "ok"
@@ -882,6 +931,10 @@ class Root(object):
             sHtml = sHtml.replace("@resultdescr@", sResultDescr)
             sHtml = sHtml.replace("@session_idx@", session_idx)
             oBack['status'] = "ok"
+
+            # Log this activity
+            self.log_activity("mix", session_idx, keizer_id)
+
             # Set the status
             self.set_status("finish", "ready")
         except:
