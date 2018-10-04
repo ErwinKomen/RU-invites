@@ -18,6 +18,7 @@ var ru = (function ($, ru) {
         loc_interrupt = false,
         loc_answers = [],
         loc_sSession = "",    // The session_idx we have been assigned
+        loc_logged_user = "",
         mediaOptions = { audio: false, video: { facingMode: "user" } },
         video = document.querySelector('#web_video'),
         canvas = document.querySelector('#web_canvas'),
@@ -529,6 +530,14 @@ var ru = (function ($, ru) {
                 }
               });
               break;
+            case "act":
+              // Is someone logged in?
+              if (loc_logged_user) {
+                // We have someone logged in: ask for the activities list
+                data.push({ 'name': 'inlog_name', 'value': loc_logged_user });
+                private_methods.load_stage(loc_appPfx + "post_act", data);
+              }
+              break;
             case "start": // Opening screen
               $("#pane_container").removeClass("hidden");
               $("#pane_info").addClass("hidden");
@@ -954,6 +963,121 @@ var ru = (function ($, ru) {
           }
         } catch (ex) {
           private_methods.showError("set_answer", ex);
+        }
+      },
+
+
+      // Start up log in
+      login_start: function () {
+        var ajaxurl = loc_appPfx + "post_logoff",
+            oResponse = {},
+            data = [];
+
+        try {
+          if (loc_logged_user === "") {
+            // Clear the name and ww
+            $("#login_screen input").val("");
+            $("#login_screen").removeClass("hidden");
+          } else {
+            // Also log-out at the server
+            data.push({ "name": "inlog_name", "value": loc_logged_user });
+            $.post(ajaxurl, data, function (response) {
+              // Sanity check
+              if (response !== undefined) {
+                // Get the definitions
+                oResponse = JSON.parse(response);
+                if ('status' in oResponse) {
+                  switch (oResponse['status']) {
+                    case "ok":
+                      // Were we logged-in?
+                      if (loc_logged_user !== "") {
+                        loc_logged_user = "";
+                      }
+                      // Show we are logged off
+                      $("#user_name").html("<b>uitgelogd</b>");
+                      // Do not show the login stuff again
+                      $("#login_screen").addClass("hidden");
+                      // Hide the activities button
+                      $("#act_button").addClass("hidden");
+                      // Fade out: after 5 seconds, take 3 seconds to gradually fade out
+                      $("#user_name").delay(5000).fadeOut(3000);
+                      break;
+                    default:
+                      // Show we are NOT logged off
+                      $("#user_name").html("gebruiker " + loc_logged_user + "<b>niet</b> uitgelogd");
+                      // Wait a moment...
+                      setTimeout(function () { $("#user_name").html("<b>" + loc_logged_user + "</b>"); }, 5000);
+                      break;
+                  }
+                }
+              }
+            });
+          }
+
+        } catch (ex) {
+          private_methods.showError("login_start", ex);
+        }
+      },
+
+      login_cancel: function () {
+        try {
+          $("#login_screen").addClass("hidden");
+        } catch (ex) {
+          private_methods.showError("login_cancel", ex);
+        }
+      },
+
+      login_send: function (elStart) {
+        var frm = null,
+            ajaxurl = loc_appPfx + "post_login",
+            oResponse = {},
+            data = [];
+
+        try {
+          // Hide the login screen
+          $("#login_screen").addClass("hidden");
+          // Reset the logged in user
+          loc_logged_user = "";
+          // Get the form details
+          frm = $(elStart).closest("form");
+          if (frm !== null && frm.length > 0) {
+            // Get the data from the form
+            data = $(frm).serializeArray();
+            // Make a login request
+            $.post(ajaxurl, data, function (response) {
+              // Sanity check
+              if (response !== undefined) {
+                // Get the definitions
+                oResponse = JSON.parse(response);
+                if ('status' in oResponse) {
+                  switch(oResponse['status']) {
+                    case "ok":
+                      $("#user_name").html("<b>" + oResponse['html'] + "</b>");
+                      $("#user_name").attr("style", "");
+                      if ('logged_user' in oResponse) {
+                        loc_logged_user = oResponse['logged_user'];
+                      }
+                      // Show the activities button
+                      $("#act_button").removeClass("hidden");
+                      break;
+                    case "rejected":
+                      $("#user_name").html("<i>no</i>");
+                      break;
+                    default:
+                      if ('html' in oResponse) {
+                        $(loc_errDiv).html("Response: " + oResponse['status'] + " msg: " + oResponse['html']);
+                      } else {
+                        $(loc_errDiv).html("Response is bad, and [html] is missing");
+                      }
+                      break;
+                  }
+                }
+              }
+            });
+          }
+          // Done
+        } catch (ex) {
+          private_methods.showError("login_cancel", ex);
         }
       }
 

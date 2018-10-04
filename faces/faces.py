@@ -26,7 +26,8 @@ APP_PFX = SUBDOMAIN.strip("/") + "/"
 OUT_FRAMES = "static/tmp"   # os.path.abspath(os.path.join(WRITABLE, "tmp"))  # "static/tmp"
 DATA_DIR = "static/data"
 STAT_FILE = "static/tmp/status.json"
-ACTIVITY_FILE = "static/tmp/activities.json"
+ACTIVITY_FILE = "activities.json"
+USER_FILE = "users.json"
 
 MAX_SESSION = 50        # Maximum amount of sessions to have at any one time
 
@@ -267,12 +268,15 @@ class Root(object):
     out_frames = OUT_FRAMES                     # Directory where the output images are stored
     data_dir = DATA_DIR                         # Directory where JSON data is stored
     status_file = os.path.abspath(os.path.join(os.getcwd(), STAT_FILE))
-    activities_file = os.path.abspath(os.path.join(os.getcwd(), ACTIVITY_FILE))
+    # activities_file = os.path.abspath(os.path.join(os.getcwd(), ACTIVITY_FILE))
+    activities_file = os.path.abspath(os.path.join(WRITABLE, ACTIVITY_FILE))
+    user_file = os.path.abspath(os.path.join(WRITABLE, USER_FILE))
     status_list = []
     imgpaths = []
     counter = 1
     session_idx = ""
     keizer_abbr = ""
+    logging = {}
     lStatus = []
     lQuiz = []
     questions = None
@@ -336,6 +340,19 @@ class Root(object):
             # Add object to file
             with io.open(self.activities_file, "a") as fout:
                 fout.write(sEvent + ",\n")
+
+    def read_activities(self):
+        lBack = []
+        try:
+            with io.open(self.activities_file, "r") as fin:
+                print("read_activities open", file=sys.stderr)
+                lData = fin.readlines()
+                print("read_activities len={}".format(len(lData)), file=sys.stderr)
+                lBack = [json.loads(x.strip()) for x in lData]
+        except:
+            sHtml = get_error_message()
+            DoError("read_activities error: ")
+        return lBack
 
     def full_path(self, sFile):
         sFull = os.path.abspath(os.path.join(self.root_path, sFile))
@@ -523,6 +540,42 @@ class Root(object):
         except:
             sHtml = get_error_message()
             DoError("post_page error: ")
+
+    @cherrypy.expose
+    def post_act(self, inlog_name=""):
+        """Show the activities"""
+
+        # Default reply
+        oBack = {'status': 'error', 'html': 'kan niets tonen'}
+
+        try:
+            # Check if this user is logged in
+            if inlog_name != "" and self.logging[inlog_name] == "ok":
+                # Yes, user is logged in
+                t = "templates/act.html"
+                sHtml = treat_bom( get_template_unit(t))
+
+                # Read the data
+                lAct = self.read_activities()
+                iTotal = len(lAct)
+
+                lHtml = []
+                lHtml.append("<tr><td>Totaal:</td><td>{}</td></tr>".format(len(lAct)))
+
+                # Fill the variables
+                sHtml = sHtml.replace("@act_types@", "\n".join(lHtml))
+
+
+                # Return the page
+                oBack['status'] = "ok"
+                oBack['html'] = sHtml
+        except:
+            sHtml = get_error_message()
+            oBack['html'] = sHtml
+            DoError("post_page error: ")
+
+        # Return reply
+        return json.dumps(oBack)
 
     @cherrypy.expose
     def post_status(self, session_id=None):
@@ -758,6 +811,60 @@ class Root(object):
             oBack['html'] = "Ik kan uw gezicht niet herkennen in dit beeld"
 
         return json.dumps(oBack)
+
+    @cherrypy.expose
+    def post_login(self, inlog_name="", inlog_pass=""):
+        """Check if we can accept this user"""
+
+        # Default reply
+        oBack = {'status': 'rejected', 'html': 'niet ingelogd'}
+
+        try:
+            # Read the allowed login information
+            lData = []
+            if os.path.exists(self.user_file):
+                with io.open(self.user_file, "r") as fusers:
+                    lData = json.load(fusers)
+            bSuccess = False
+            for oData in lData:
+                if 'name' in oData and 'pass' in oData:
+                    # Check name and password
+                    if oData['name'] == inlog_name and oData['pass'] == inlog_pass:
+                        # user is logged in
+                        bSuccess = True
+                        # Set the log status for this user
+                        self.logging[inlog_name] = "ok"
+                        # Leave
+                        break
+            # What if the user has logged in successfully?
+            if bSuccess:
+                oBack['status'] = 'ok'
+                oBack['html'] = "{}!".format(inlog_name)
+                oBack['logged_user'] = inlog_name
+        except:
+            sMsg = get_error_message()
+            print("post_login error: ".format(sMsg), file=sys.stderr)
+            oBack['status'] = "error"
+            oBack['html'] = sMsg
+
+        return json.dumps(oBack)
+
+    @cherrypy.expose
+    def post_logoff(self, inlog_name=""):
+        """Log off"""
+
+        # Default reply
+        oBack = {'status': 'ok', 'html': 'uitgelogd'}
+
+        # Check parameter
+        if inlog_name == "":
+            oBack['status'] = "rejected"
+            oBack['html'] = "Unable to log off"
+        else:
+            self.logging[inlog_name] = "off"
+
+        return json.dumps(oBack)
+
 
     @cherrypy.expose
     def post_manual(self, id="", session_idx=None):
