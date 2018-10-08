@@ -721,9 +721,9 @@ class Root(object):
                 for oRow in lVisitors:
                     if 'ipinfolist' in oRow:
                         iplist = oRow['ipinfolist']
-                        print("post_act: iplist is in oRow {}".format(len(iplist)), file=sys.stderr)
+                        # print("post_act: iplist is in oRow {}".format(len(iplist)), file=sys.stderr)
                         for oIpInfo in iplist:
-                            print("post_act #2: {}".format(json.dumps(oIpInfo)))
+                            # print("post_act #2: {}".format(json.dumps(oIpInfo)))
                             sIP = oIpInfo['ip']
                             sCountry = "-" if 'country_name' not in oIpInfo else oIpInfo['country_name']
                             sContinent = "-" if 'continent_code' not in oIpInfo else oIpInfo['continent_code']

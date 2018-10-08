@@ -150,6 +150,7 @@ var ru = (function ($, ru) {
             // Check for interrupt
             if (loc_interrupt && ajaxurl.indexOf("post_mix") >=0) {
               loc_interrupt = false;
+              $("#main_wait").addClass("hidden");
               return;
             }
             // Debugging
@@ -171,20 +172,24 @@ var ru = (function ($, ru) {
                   if ('keizerkeuze' in oResponse) {
                     loc_keizerkeuze = oResponse['keizerkeuze'];
                   }
+                  $("#main_wait").addClass("hidden");
                   // Perform the next function if defined
                   if (func_next !== undefined) {
                     func_next();
                   }
                 } else {
                   $(loc_errDiv).html("Response is okay, but [html] is missing");
+                  $("#main_wait").addClass("hidden");
                 }
               } else if (oResponse['status'] === "error") {
                 $(loc_errDiv).html(oResponse['html']);
                 if (func_err !== undefined) {
                   func_err();
                 }
+                $("#main_wait").addClass("hidden");
               } else {
                 $(loc_errDiv).html("Could not interpret response " + response.status);
+                $("#main_wait").addClass("hidden");
               }
             }
           });
@@ -533,6 +538,8 @@ var ru = (function ($, ru) {
             case "act":
               // Is someone logged in?
               if (loc_logged_user) {
+                // Show we are busy
+                $("#main_wait").removeClass("hidden");
                 // We have someone logged in: ask for the activities list
                 data.push({ 'name': 'inlog_name', 'value': loc_logged_user });
                 private_methods.load_stage(loc_appPfx + "post_act", data);
