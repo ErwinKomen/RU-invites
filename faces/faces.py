@@ -12,6 +12,7 @@ import datetime
 import smtplib      # Allow sending mail
 import csv
 import random
+import requests
 from email.mime.multipart import MIMEMultipart
 from email.mime.image import MIMEImage
 from email.mime.text import MIMEText
@@ -389,11 +390,13 @@ class Root(object):
         """Check the visiting IPs and return a list with an overview by day"""
 
         lBack = []
+        oIpInfoCache = {}        # Information object per IP
         try:
             # <th>Site</th><th>start</th><th>quiz</th><th>choose</th><th>mix</th><th>mail</th><th>picture</th><th>manual</th>
             sDate = ""
             oVisit = {'date': '', 'iplist': []}
-            iplist = []
+            iplist = []         # just the IP strings for each day
+            lst_ipinfo = []     # Information per ip
             oRow = json.loads(json.dumps(oVisit))
             # walk all the activities
             for oAct in lAct:
@@ -402,28 +405,88 @@ class Root(object):
                     # Process previous row
                     if sDate != "":
                         print("list_visitors iplist={}".format(json.dumps(iplist)), file=sys.stderr)
-                        oRow['iplist'] = iplist
+                        oRow['ipinfolist'] = lst_ipinfo # iplist
+                        # oRow['iplist'] = iplist
                         lBack.append(oRow)
-                    # Start a new row
+
+                    # Start a new row with a new DATE
                     oRow = json.loads(json.dumps(oVisit))
                     sDate = sDateThis
                     oRow['date'] = sDate
-                    iplist = []
                     print("New date {}".format(sDate), file=sys.stderr)
+
+                    # Reset the iplist and the information per ip address
+                    iplist = []
+                    lst_ipinfo = [] 
                 # Add the information for this event
                 sIp = oAct['ip']
-                # print("IP {} in list {}".format(sIp, (sIp in iplist)), file=sys.stderr)
                 if  sIp not in iplist:
                     iplist.append(sIp)
+                    # Get IP location information
+                    if sIp in oIpInfoCache:
+                        ipinfo = oIpInfoCache[sIp]
+                    else:
+                        ipinfo = self.get_location(sIp)
+                        oIpInfoCache[sIp] = ipinfo
+                    ipinfo['count'] = 1
+                    lst_ipinfo.append(ipinfo)
+                    # Show this information
+                    print("info on ip [{}] count={}".format(sIp, ipinfo['count']))
+                else:
+                    # Find the correct entry
+                    oItem = next((x for x in lst_ipinfo if x['ip'] == sIp), None)
+                    if oItem == None:
+                        print("list_visitors cannot find ip={}".format(sIp), file=sys.stderr)
+                    else:
+                        oItem['count'] += 1
             # Add the last row
-            print("list_visitors iplist={}".format(json.dumps(iplist)), file=sys.stderr)
-            oRow['iplist'] = iplist
+            # print("list_visitors iplist={}".format(json.dumps(iplist)), file=sys.stderr)
+            oRow['ipinfolist'] = lst_ipinfo # iplist
             lBack.append(oRow)
         except:
             sHtml = get_error_message()
             DoError("list_visitors error: ")
 
         return lBack
+
+    def get_location(self, sIp):
+        """Get information on this IP"""
+
+        url = "https://iplocation.com/"
+        # Package request
+        oIP = {'ip': sIp}
+        # Default reply
+        oBack = {'status': 'ok', 'ip': sIp}
+        headers={"Accept": "application/json", 'Content-Type': 'application/x-www-form-urlencoded'}
+        # Get the data from the API
+        try:
+            # r = requests.post(url, json=json.loads(json.dumps(oIP)))
+            r = requests.post(url, data="ip={}".format(sIp), headers=headers)
+        except:
+            oBack['status'] = "error"
+            oBack['msg'] = "Back-end server iplocation.com could not be reached"
+            DoError("get_location 1")
+            return oBack
+        # Action depends on what we receive
+        print("ip={} status_code={}".format(sIp, r.status_code))
+        if r.status_code == 200:
+            # all is well 
+            try:
+                reply = json.loads(r.text.replace("\t", " "))
+            except:
+                print("reply text: [{}]".format(r.text))
+                DoError("get_location 2")
+                return oBack
+            # print("reply: {}".format(json.dumps(reply, indent=2)), file=sys.stderr)
+            # Copy all items
+            for item in reply:
+                oBack[item] = reply[item]
+        else:
+            oBack['status'] = "error"
+            oBack['msg'] = "The iplocation.com server returns error {}: {}".format(r.status_code, r.reason)
+            DoError("get_location 3")
+        # Return what we have
+        return oBack
 
     def full_path(self, sFile):
         sFull = os.path.abspath(os.path.join(self.root_path, sFile))
@@ -656,14 +719,25 @@ class Root(object):
                 # COnvert data to html
                 lHtml = []
                 for oRow in lVisitors:
-                    if 'iplist' in oRow:
-                        print("post_act #1", file=sys.stderr)
-                        iplist = oRow['iplist']
+                    if 'ipinfolist' in oRow:
+                        iplist = oRow['ipinfolist']
                         print("post_act: iplist is in oRow {}".format(len(iplist)), file=sys.stderr)
-                        for sIP in iplist:
+                        for oIpInfo in iplist:
+                            print("post_act #2: {}".format(json.dumps(oIpInfo)))
+                            sIP = oIpInfo['ip']
+                            sCountry = "-" if 'country_name' not in oIpInfo else oIpInfo['country_name']
+                            sContinent = "-" if 'continent_code' not in oIpInfo else oIpInfo['continent_code']
+                            sRegion = "-" if 'region_name' not in oIpInfo else oIpInfo['region_name']
+                            sCity = "-" if 'city' not in oIpInfo else oIpInfo['city']
+                            sCount = "-" if 'count' not in oIpInfo else oIpInfo['count']
                             lHtml.append("<tr>")
                             lHtml.append("<td>{}</td>".format(oRow['date']))
-                            lHtml.append("<td align='right'>{}</td>".format(sIP))
+                            lHtml.append("<td align='right' style='font-size: smaller; color: darkblue;'>{}</td>".format(sIP))
+                            lHtml.append("<td align='right'>{}</td>".format(sCount))
+                            lHtml.append("<td>{}</td>".format(sContinent))
+                            lHtml.append("<td>{}</td>".format(sCountry))
+                            lHtml.append("<td>{}</td>".format(sRegion))
+                            lHtml.append("<td>{}</td>".format(sCity))
                             lHtml.append("</tr>")
 
                 # Fill the variables
