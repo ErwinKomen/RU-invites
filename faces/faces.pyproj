@@ -73,6 +73,10 @@
     <Content Include="static\content\aug-1.jpg" />
     <Content Include="static\content\aug-2.jpg" />
     <Content Include="static\content\invites_faces.png" />
+    <Content Include="static\fonts\glyphicons-halflings-regular.eot" />
+    <Content Include="static\fonts\glyphicons-halflings-regular.svg" />
+    <Content Include="static\fonts\glyphicons-halflings-regular.ttf" />
+    <Content Include="static\fonts\glyphicons-halflings-regular.woff" />
     <Content Include="static\scripts\crpstudio.htable.js" />
     <Content Include="static\scripts\invites.js" />
     <Content Include="templates\about.html" />
@@ -122,6 +126,7 @@
   </ItemGroup>
   <ItemGroup>
     <Folder Include="media\" />
+    <Folder Include="static\fonts\" />
     <Folder Include="templates\" />
     <Folder Include="static\" />
     <Folder Include="static\content\" />
