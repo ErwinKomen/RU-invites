@@ -1,86 +1,69 @@
-﻿
-      <div class="col-md-6 bgimg" id="pane_left">
 
-        <h2>Ontdek de keizer(in) in jezelf</h2>
-        <!-- Provide a start again button -->
-        <div id="startagain" class="hidden">
-          <p>Uw gezicht kan <code>niet</code> herkend worden. Maak een nieuw beeld.</p>
-          <a class="btn btn-danger"
-             onclick="ru.invites.init_stage('start');"
-             title="Overnieuw">Begin opnieuw</a>
-        </div>
-
-        <div name="webcam" >
-          <video id="web_video" autoplay="autoplay" style="width:100%;"></video>
-          <!-- Use a hidden canvas -->
-          <canvas id="web_canvas" style="display:none;"></canvas>
-          <div id="buttoncontent"></div>
-        </div>
-
-        <!--
-        <h2>Laatste nieuws</h2>
-        <div class="panel panel-default">
-          <div class="panel-heading collapsed" data-toggle="collapse" data-target="#news-item-1">
-            <span>Lustrum</span>
-            <span class="pull-right" style="font-size: smaller;"><i>22/aug/2018</i></span>
-          </div>
-          <div class="collapse newsitem" id="news-item-1">
-            Deze keizerportretten app is bedoeld om ... (ja, wat is de bedoeling eigenlijk?)
-          </div>
-        </div>
-          -->
-
-        <div id="login_screen" class="hidden">
-          <form>
-            <table>
-              <tr>
-                <td>Naam:</td>
-                <td>
-                  <input id="id_inlog_name" name="inlog_name" type="text" placeholder="User name"  autocomplete="off" readonly onfocus="this.removeAttribute('readonly');" />
-                </td>
-              </tr>
-              <tr>
-                <td>Wachtwoord:</td>
-                <td>
-                  <input id="id_inlog_pass" name="inlog_pass" type="password" placeholder="Password" autocomplete="off"  readonly onfocus="this.removeAttribute('readonly');" />
-                </td>
-              </tr>
-              <tr>
-                <td colspan="2">
-                  <span>
-                    <a role="button" class="btn btn-success btn-xs"
-                       onclick="ru.invites.login_send(this);">Aanmelden</a>
-                  </span>
-                  <span>
-                    <a role="button" class="btn btn-default btn-xs"
-                       onclick="ru.invites.login_cancel(this);">Terug</a>
-                  </span>
-                </td>
-              </tr>
-            </table>
-          </form>
-        </div>
-
-      </div>
-      <div class="col-md-6" id="pane_right">
-        <h2>Achtergrond</h2>
-        <p>
-          Portretten waren bij uitstek de manier voor Romeinse keizers en keizerinnen om te communiceren met hun onderdanen. 
-          Ze konden door middel van hun portretten op een symbolische wijze aspecten en kenmerken van hun heerschappij overbrengen. 
-          Verplaats je met deze test in de huid van de keizer of keizerin en bepaal wat voor soort leider jij wilt zijn. 
-          Met welke keizer of keizerin ‘match’ jij het beste? Of die gelijkenis ook fysiek is, 
-          kun je zien met behulp van een combi-portret van jou en je match. 
-          Deze keizerlijke selfie kun je meteen per e-mail naar jezelf toesturen! 
-        </p>
-        <a href="https://www.ru.nl/nieuws-agenda/radboud-lustrum/radboud-invites/" target="_blank" class="pull-right">
-          <img src="static/content/invites_faces.png"
-               alt="De TSG"
-               title="Radboud Invites"
-               style="width:300px;z-index:-2" />
-        </a>
-        <h2>Acknowledgements</h2>
-        <p>Pictures: Carole Raddato</p>
-        <p>Text: Sam Heijnen (Radboud University, Department of History)</p>
-        <p>Project: <a href="https://www.ru.nl/constraintsandtradition">Constraints and tradition</a></p>
-        <p>Web application: Erwin R. Komen (Radboud University, Faculty of Arts, <span onclick="ru.invites.login_start();">TSG</span>/Humanities Lab)</p>
-      </div>
+<div class="col-md-6 bgimg" id="pane_left">
+  <h2>Ontdek de keizer(in) in jezelf</h2>
+  <!-- Provide a start again button -->
+  <div id="startagain" class="hidden">
+    <p>Uw gezicht kan <code>niet</code> herkend worden. Maak een nieuw beeld.</p>
+    <a class="btn btn-danger"
+       onclick="ru.invites.init_stage('start');"
+       title="Overnieuw">Begin opnieuw</a>
+  </div>
+  <div name="webcam">
+    <video id="web_video" autoplay="autoplay" style="width:100%;"></video>
+    <!-- Use a hidden canvas -->
+    <canvas id="web_canvas" style="display:none;"></canvas>
+    <div id="buttoncontent"></div>
+  </div>
+  <div id="login_screen" class="hidden">
+    <form>
+      <table>
+        <tr>
+          <td>Naam:</td>
+          <td>
+            <input id="id_inlog_name" name="inlog_name" type="text" placeholder="User name" autocomplete="off" readonly onfocus="this.removeAttribute('readonly');" />
+          </td>
+        </tr>
+        <tr>
+          <td>Wachtwoord:</td>
+          <td>
+            <input id="id_inlog_pass" name="inlog_pass" type="password" placeholder="Password" autocomplete="off" readonly onfocus="this.removeAttribute('readonly');" />
+          </td>
+        </tr>
+        <tr>
+          <td colspan="2">
+            <span>
+              <a role="button" class="btn btn-success btn-xs"
+                 onclick="ru.invites.login_send(this);">Aanmelden</a>
+            </span>
+            <span>
+              <a role="button" class="btn btn-default btn-xs"
+                 onclick="ru.invites.login_cancel(this);">Terug</a>
+            </span>
+          </td>
+        </tr>
+      </table>
+    </form>
+  </div>
+</div>
+<div class="col-md-6" id="pane_right">
+  <h2>Achtergrond</h2>
+  <p>
+    Portretten waren bij uitstek de manier voor Romeinse keizers en keizerinnen om te communiceren met hun onderdanen.
+    Ze konden door middel van hun portretten op een symbolische wijze aspecten en kenmerken van hun heerschappij overbrengen.
+    Verplaats je met deze test in de huid van de keizer of keizerin en bepaal wat voor soort leider jij wilt zijn.
+    Met welke keizer of keizerin ‘match’ jij het beste? Of die gelijkenis ook fysiek is,
+    kun je zien met behulp van een combi-portret van jou en je match.
+    Deze keizerlijke selfie kun je meteen per e-mail naar jezelf toesturen!
+  </p>
+  <a href="https://www.ru.nl" target="_blank" class="pull-right">
+    <img src="static/content/ru_nl_1.jpg"
+         alt="De TSG"
+         title="Radboud Universiteit Nijmegen"
+         style="width:300px;z-index:-2" />
+  </a>
+  <h2>Acknowledgements</h2>
+  <p>Pictures: Carole Raddato and Creative Commons License (public domain)</p>
+  <p>Text: Sam Heijnen and Dennis Jussen (Radboud University, Department of History)</p>
+  <p>Project: <a href="https://www.ru.nl/constraintsandtradition">Constraints and tradition</a></p>
+  <p>Web application: Erwin R. Komen (Radboud University, Faculty of Arts, <span onclick="ru.invites.login_start();">TSG</span>/Humanities Lab)</p>
+</div>

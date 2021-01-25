@@ -73,6 +73,13 @@
     <Content Include="static\content\aug-1.jpg" />
     <Content Include="static\content\aug-2.jpg" />
     <Content Include="static\content\invites_faces.png" />
+    <Content Include="static\content\ru_nl_1.jpg" />
+    <Content Include="static\data\quiz_antwoorden.json" />
+    <Content Include="static\data\quiz_antwoorden_invites.json" />
+    <Content Include="static\data\quiz_keizers_invites.json" />
+    <Content Include="static\data\quiz_keizers.json" />
+    <Content Include="static\data\quiz_vragen.json" />
+    <Content Include="static\data\quiz_vragen_invites.json" />
     <Content Include="static\fonts\glyphicons-halflings-regular.eot" />
     <Content Include="static\fonts\glyphicons-halflings-regular.svg" />
     <Content Include="static\fonts\glyphicons-halflings-regular.ttf" />
@@ -80,9 +87,18 @@
     <Content Include="static\scripts\crpstudio.htable.js" />
     <Content Include="static\scripts\invites.js" />
     <Content Include="templates\about.html" />
+    <Content Include="templates\ack_leiden.html" />
+    <Content Include="templates\ack_invites.html" />
     <Content Include="templates\ack.html" />
     <Content Include="templates\act.html" />
     <Content Include="templates\helpdoc.html" />
+    <Content Include="templates\index_leiden.html" />
+    <Content Include="templates\index_invites.html" />
+    <Content Include="templates\keizer_jti.html" />
+    <Content Include="templates\keizer_dlo.html" />
+    <Content Include="templates\keizer_tit.html" />
+    <Content Include="templates\keizer_dom.html" />
+    <Content Include="templates\keizer_cla.html" />
     <Content Include="templates\keizer_agr.html" />
     <Content Include="templates\keizer_cri.html" />
     <Content Include="templates\keizer_jul.html" />
@@ -100,6 +116,8 @@
     <Content Include="templates\keizer_cal.html" />
     <Content Include="templates\keizer_aug.html" />
     <Content Include="templates\post_quiz.html" />
+    <Content Include="templates\post_start_leiden.html" />
+    <Content Include="templates\post_start_invites.html" />
     <Content Include="templates\post_start.html" />
     <Content Include="templates\post_mixer.html" />
     <Content Include="templates\post_chooser.html" />
@@ -126,6 +144,7 @@
   </ItemGroup>
   <ItemGroup>
     <Folder Include="media\" />
+    <Folder Include="static\data\" />
     <Folder Include="static\fonts\" />
     <Folder Include="templates\" />
     <Folder Include="static\" />

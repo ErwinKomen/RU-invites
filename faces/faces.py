@@ -999,8 +999,9 @@ class Root(object):
         try:
             # Read the allowed login information
             lData = []
+            debugMsg("Looking in user file: [{}]".format(self.user_file))
             if os.path.exists(self.user_file):
-                with io.open(self.user_file, "r") as fusers:
+                with io.open(self.user_file, "r", encoding="utf8") as fusers:
                     lData = json.load(fusers)
             bSuccess = False
             for oData in lData:
