@@ -825,7 +825,7 @@ class Root(object):
                 sName = lEmp[0]['keizer_naamNL']
 
         # Prepare the fields
-        mail_from = "ekomen@science.ru.nl" # "amatchmadeinrome@science.ru.nl" # "ekomen@science.ru.nl"
+        mail_from = "humlab.tsg@science.ru.nl" # "amatchmadeinrome@science.ru.nl" # "ekomen@science.ru.nl"
         mail_to = input_email
         subject = "Radboud - keizerbeeld"
         boundary_marker = "RADBOUD_INVITES_MARKER_OF_MAIL"
