@@ -2,6 +2,7 @@ import cherrypy
 # from cherrypy import tools
 from cherrypy import request
 import io, os, sys
+import tempfile
 import cv2, re
 import json
 import base64
@@ -315,6 +316,8 @@ class Root(object):
     def __init__(self, **kwargs):
         self.log_activity("init")
         # print("Root.ini: environment variable MPLCONFIGDIR is: {}".format(os.environ.get('MPLCONFIGDIR')), file=sys.stderr)
+        # Show what has happened
+        print("Root.ini: the tempdir has been set to: {}".format(tempfile.gettempdir()), file=sys.stderr)
         return super(Root, self).__init__(**kwargs)
 
     def log_activity(self, sActivity="", sSession = "", keizer_id=None):
