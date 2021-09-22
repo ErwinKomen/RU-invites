@@ -24,7 +24,9 @@ from utils import get_error_message, DoError, debugMsg
 
 from settings import CONFIGURATION, SERVE_PORT, KEIZER_BASE, KEIZERS, SUBDOMAIN, WRITABLE
 
-APP_PFX = SUBDOMAIN.strip("/") + "/"
+APP_PFX = SUBDOMAIN.strip("/") + "" if SUBDOMAIN == "/" else "/"
+if APP_PFX == "/": APP_PFX = ""
+print("APP_PFX = [{}]".format(APP_PFX), file=sys.stderr)
 OUT_FRAMES = "static/tmp"   # os.path.abspath(os.path.join(WRITABLE, "tmp"))  # "static/tmp"
 DATA_DIR = "static/data"
 STAT_FILE = "static/tmp/status.json"
@@ -44,6 +46,7 @@ def get_current_time_as_string():
 def static_adapt(sHtml):
     """Convert all "static/..." to ones that have the app prefix"""
 
+    #if APP_PFX == "/": APP_PFX = ""
     iPos = sHtml.find("\"static/")
     iPos2 = sHtml.find("static/")
     print("static_adapt has 'static/ at {} and static/ at {}".format(iPos, iPos2), file=sys.stderr)
@@ -81,6 +84,7 @@ def get_template_unit(sLoc):
         # Convert the lines into a string
         sData = "\n".join(lData)
         # Immediate conversion of static base
+        #if APP_PFX == "/": APP_PFX = ""
         sData = sData.replace("static/", "/" + APP_PFX + "static/")
     # Return the data
     return sData

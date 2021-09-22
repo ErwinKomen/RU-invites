@@ -15,14 +15,24 @@ from settings import CONFIGURATION, SERVE_PORT, SUBDOMAIN
 cherrypy.config.update({'server.socket_port': SERVE_PORT,})
 
 if SERVE_PORT != 6001:
-    BASE_DIR = "/var/www/applejack/live"
-    cherrypy.config.update({'log.access_file': BASE_DIR + '/writable/faces/logs/faces_access.log',
-                            'log.error_file': BASE_DIR + '/writable/faces/logs/faces_error.log'})
+    serve_location = "lightning"
+
+    if serve_location == "lightning":
+        BASE_DIR = "/var/www/live"
+        cherrypy.config.update({'log.access_file': BASE_DIR + '/writable/logs/faces_access.log',
+                                'log.error_file': BASE_DIR + '/writable/logs/faces_error.log'})
+    else:
+        BASE_DIR = "/var/www/applejack/live"
+        cherrypy.config.update({'log.access_file': BASE_DIR + '/writable/faces/logs/faces_access.log',
+                                'log.error_file': BASE_DIR + '/writable/faces/logs/faces_error.log'})
 
     method = "leiden"   # Or else: "invites"
     if method == "leiden":
         # Define the full path of the temporary directory to be
-        TEMP_DIR = os.path.abspath(os.path.join(BASE_DIR, "writable/faces/temp"))
+        if serve_location == "lightning":
+            TEMP_DIR = os.path.abspath(os.path.join(BASE_DIR, "writable/temp"))
+        else:
+            TEMP_DIR = os.path.abspath(os.path.join(BASE_DIR, "writable/faces/temp"))
         # Check if it exists
         if not path.exists(TEMP_DIR):
             # If not: create it
