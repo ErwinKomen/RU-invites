@@ -497,7 +497,9 @@ class Root(object):
 
     def full_path(self, sFile):
         sFull = os.path.abspath(os.path.join(self.root_path, sFile))
+        # print("Full path before: {}".format(sFull))
         sFull = sFull.replace("/repo/faces/faces/static/tmp", "/writable/faces/tmp")
+        # print("Full path takes picture from: {}".format(sFull))
         return sFull
 
     def get_status_object(self, session_id = None):
@@ -568,6 +570,12 @@ class Root(object):
         self.session_idx = str(self.counter)
 
         self.log_activity("index")
+
+        # Double check the availability of all emperor images
+        for idx in range(1, len(KEIZERS)):
+            img_path = self.full_path(keizer_image(idx))
+            if not os.path.exists(img_path):
+                print("Cannot find emperor image: [{}]".format(img_path))
 
         # Initialize a list of status objects
         for i in range(0,MAX_SESSION):
@@ -939,8 +947,11 @@ class Root(object):
         img_name = get_picture_name(session_idx)
 
         # Check whether the image contains points
+        print("post_picture point #1")
         img_path = self.full_path( img_name)
+        print("post_picture point #2: {}".format(img_path))
         bHasPoints = check_for_image_points(img_path)
+        print("post_picture point #3: {}".format(bHasPoints))
 
         # Load the 'picture' template - this shows the resulting picture
         sHtml = get_template_unit(self.template_post_pictu).replace("@img_name@", static_adapt(img_name))

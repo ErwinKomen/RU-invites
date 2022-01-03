@@ -25,19 +25,34 @@ from facemorpher import videoer
 from utils import get_error_message, DoError, debugMsg
 
 def check_for_image_points(path):
-    img = cv2.imread(path)
-    points = locator.face_points(img)
+    points = []
+    try:
+        print("check_for_image_points 1")
+        if os.path.isfile(path):
+            img = cv2.imread(path)
+            print("check_for_image_points 2: read image")
+            points = locator.face_points(img)
+            print("check_for_image_points 3: {}".format(len(points)))
+        else:
+            print("check_for_image_points - file does not exist: {}".format(path))
+    except:
+        sMsg = get_error_message()
+        DoError("check_for_image_points: ")
     return (len(points) > 0)
 
 def load_image_points(path, size):
-    img = cv2.imread(path)
-    points = locator.face_points(img)
+    if os.path.isfile(path):
+        img = cv2.imread(path)
+        points = locator.face_points(img)
 
-    if len(points) == 0:
-        print('No face in %s' % path)
-        return None, None
+        if len(points) == 0:
+            print('No face in %s' % path)
+            return None, None
+        else:
+            return aligner.resize_align(img, points, size)
     else:
-        return aligner.resize_align(img, points, size)
+        print("load_image_points cannot find image [{}]".format(path))
+        return None, None
 
 def load_valid_image_points(imgpaths, size):
     for path in imgpaths:
