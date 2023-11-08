@@ -2,6 +2,7 @@ import cherrypy
 # from cherrypy import tools
 from cherrypy import request
 import io, os, sys
+import tempfile
 import cv2, re
 import json
 import base64
@@ -23,7 +24,9 @@ from utils import get_error_message, DoError, debugMsg
 
 from settings import CONFIGURATION, SERVE_PORT, KEIZER_BASE, KEIZERS, SUBDOMAIN, WRITABLE
 
-APP_PFX = SUBDOMAIN.strip("/") + "/"
+APP_PFX = SUBDOMAIN.strip("/") + "" if SUBDOMAIN == "/" else "/"
+if APP_PFX == "/": APP_PFX = ""
+print("APP_PFX = [{}]".format(APP_PFX), file=sys.stderr)
 OUT_FRAMES = "static/tmp"   # os.path.abspath(os.path.join(WRITABLE, "tmp"))  # "static/tmp"
 DATA_DIR = "static/data"
 STAT_FILE = "static/tmp/status.json"
@@ -43,6 +46,7 @@ def get_current_time_as_string():
 def static_adapt(sHtml):
     """Convert all "static/..." to ones that have the app prefix"""
 
+    #if APP_PFX == "/": APP_PFX = ""
     iPos = sHtml.find("\"static/")
     iPos2 = sHtml.find("static/")
     print("static_adapt has 'static/ at {} and static/ at {}".format(iPos, iPos2), file=sys.stderr)
@@ -80,6 +84,7 @@ def get_template_unit(sLoc):
         # Convert the lines into a string
         sData = "\n".join(lData)
         # Immediate conversion of static base
+        #if APP_PFX == "/": APP_PFX = ""
         sData = sData.replace("static/", "/" + APP_PFX + "static/")
     # Return the data
     return sData
@@ -315,6 +320,8 @@ class Root(object):
     def __init__(self, **kwargs):
         self.log_activity("init")
         # print("Root.ini: environment variable MPLCONFIGDIR is: {}".format(os.environ.get('MPLCONFIGDIR')), file=sys.stderr)
+        # Show what has happened
+        print("Root.ini: the tempdir has been set to: {}".format(tempfile.gettempdir()), file=sys.stderr)
         return super(Root, self).__init__(**kwargs)
 
     def log_activity(self, sActivity="", sSession = "", keizer_id=None):
@@ -490,7 +497,9 @@ class Root(object):
 
     def full_path(self, sFile):
         sFull = os.path.abspath(os.path.join(self.root_path, sFile))
+        # print("Full path before: {}".format(sFull))
         sFull = sFull.replace("/repo/faces/faces/static/tmp", "/writable/faces/tmp")
+        # print("Full path takes picture from: {}".format(sFull))
         return sFull
 
     def get_status_object(self, session_id = None):
@@ -561,6 +570,12 @@ class Root(object):
         self.session_idx = str(self.counter)
 
         self.log_activity("index")
+
+        # Double check the availability of all emperor images
+        for idx in range(1, len(KEIZERS)):
+            img_path = self.full_path(keizer_image(idx))
+            if not os.path.exists(img_path):
+                print("Cannot find emperor image: [{}]".format(img_path))
 
         # Initialize a list of status objects
         for i in range(0,MAX_SESSION):
@@ -822,7 +837,7 @@ class Root(object):
                 sName = lEmp[0]['keizer_naamNL']
 
         # Prepare the fields
-        mail_from = "ekomen@science.ru.nl" # "amatchmadeinrome@science.ru.nl" # "ekomen@science.ru.nl"
+        mail_from = "humlab.tsg@science.ru.nl" # "amatchmadeinrome@science.ru.nl" # "ekomen@science.ru.nl"
         mail_to = input_email
         subject = "Radboud - keizerbeeld"
         boundary_marker = "RADBOUD_INVITES_MARKER_OF_MAIL"
@@ -932,8 +947,11 @@ class Root(object):
         img_name = get_picture_name(session_idx)
 
         # Check whether the image contains points
+        print("post_picture point #1")
         img_path = self.full_path( img_name)
+        print("post_picture point #2: {}".format(img_path))
         bHasPoints = check_for_image_points(img_path)
+        print("post_picture point #3: {}".format(bHasPoints))
 
         # Load the 'picture' template - this shows the resulting picture
         sHtml = get_template_unit(self.template_post_pictu).replace("@img_name@", static_adapt(img_name))
@@ -999,8 +1017,9 @@ class Root(object):
         try:
             # Read the allowed login information
             lData = []
+            debugMsg("Looking in user file: [{}]".format(self.user_file))
             if os.path.exists(self.user_file):
-                with io.open(self.user_file, "r") as fusers:
+                with io.open(self.user_file, "r", encoding="utf8") as fusers:
                     lData = json.load(fusers)
             bSuccess = False
             for oData in lData:

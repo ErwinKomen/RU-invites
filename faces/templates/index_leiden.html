@@ -1,0 +1,45 @@
+
+    <div class="jumbotron" style="max-height: 160px;">
+
+      <!-- Large banner with the name and a button for step #1 -->
+      <table style="width:100%;">
+        <tr>
+          <td valign="middle" align="left">
+            <h1>A match made in Rome</h1>
+          </td>
+          <td align="left">
+            <div class="btn-group" id="alt-group">
+              <button type="button" class="btn btn-default" onclick="ru.invites.init_stage('start');">Begin opnieuw</button>
+              <button type="button" class="btn btn-default dropdown-toggle alt-chooser" data-toggle="dropdown">
+                <span class="caret"></span>
+              </button>
+              <ul class="dropdown-menu alt-chooser" role="menu">
+                <li><a href="#" onclick="ru.invites.init_stage('picture');">Ik kies zelf</a></li>
+                <li><a href="#" onclick="ru.invites.init_stage('descr');">Alle omschrijvingen</a></li>
+              </ul>
+            </div> 
+          </td>
+          <td valign="middle" align="right" style="min-width: 200px;">
+            <button type="button" id="main_button" class="btn btn-success" picnum="1">Maak mijn portret</button>
+          </td>
+        </tr>
+      </table>
+      <!-- Minimal explanatory text -->
+
+      <p class="lead" >
+        <span>Op welke keizer lijkt u?</span>
+        <span id="lead_text"> Neem uw foto, en we gaan het zien...</span>
+
+      </p>
+    </div>
+
+    <div class="row">
+      <div id="py_status" class="status-table hidden"></div>
+      <div id="main_wait" class="hidden">Bezig...<span class="glyphicon glyphicon-refresh glyphicon-refresh-animate"></span></div>
+      <div id="pane_container">@post_start@</div>
+      <div id="pane_info" class="hidden"><!-- Contains About/Acknowledgements and so forth--></div>
+    </div>
+
+    <div id="error_messages">
+      <!-- This is where error messages might show up-->
+    </div>
