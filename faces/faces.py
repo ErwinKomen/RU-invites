@@ -262,6 +262,21 @@ def prepare_img_dir(tmpdir, sNumber):
         print("prepare_img_dir: remove webcam img {}".format(sWebImg))
         os.remove(sWebImg)
 
+def is_bad(sItem, oBack = None):
+    bResult = False
+    if not sItem is None:
+        if isinstance(sItem, str):
+            has_img = "<img" in sItem
+            has_scr = "<script" in sItem
+            if has_img or has_scr:
+                print("is_bad. Script intrusion: {}".format(sItem))
+                bResult = True
+                if not oBack is None:
+                    oBack['html'] = "bad request"
+    return bResult
+
+
+
 
 # @cherrypy.expose
 class Root(object):
@@ -605,6 +620,11 @@ class Root(object):
         # Default reply
         oBack = {'status': 'error', 'html': 'kon niet lezen'}
 
+        # Security check
+        if is_bad(session_idx):
+            oBack['html'] = "Bad request post_start {}".format(session_idx)
+            return json.dumps(oBack)
+
         # Remove anything from the current session of this user
         # (Provided that session index is passed on)
         if session_idx!= None:
@@ -633,6 +653,10 @@ class Root(object):
     @cherrypy.expose
     def post_img(self, image_content=None, counter='0'):
         """Receive the image and store it in the server"""
+
+        # Security check
+        #if is_bad(counter):
+        #    return "bad request"
 
         # Default reply
         oBack = {'status': 'error', 'html': 'kon niet lezen'}
@@ -676,6 +700,10 @@ class Root(object):
         """Return a particular page from the templates"""
 
         try:
+            # Security check
+            if is_bad(page):
+                return "bad request"
+
             sHtml = ""
             if page == "ack":
                 t = "templates/ack.html"
@@ -698,6 +726,10 @@ class Root(object):
         oBack = {'status': 'error', 'html': 'kan niets tonen'}
 
         try:
+            # Security check
+            if is_bad(inlog_name, oBack):
+                return json.dumps(oBack)
+
             # Check if this user is logged in
             if inlog_name != "" and self.logging[inlog_name] == "ok":
                 # Yes, user is logged in
@@ -772,6 +804,10 @@ class Root(object):
     @cherrypy.expose
     def post_status(self, session_id=None):
         try:
+            # Security check
+            if is_bad(session_id):
+                return "bad request"
+
             # Find the current status object
             oStatus = self.get_status_object(session_id)
             if oStatus == None:
@@ -791,6 +827,10 @@ class Root(object):
 
         Code idea taken from: https://www.tutorialspoint.com/python/python_sending_email.htm
         """
+
+        # Security check
+        if is_bad(input_email) or is_bad(imgname):
+            return "bad request"
 
         debugMsg("post_mail #1")
         oResponse = {'status': 'started', 'msg': ''}
@@ -943,6 +983,10 @@ class Root(object):
         # Default reply
         oBack = {'status': 'error', 'html': 'kon niet lezen'}
 
+        # Security check
+        if is_bad(session_idx, oBack):
+            return json.dumps(oBack)
+
         # Retrieve the currently existing image
         img_name = get_picture_name(session_idx)
 
@@ -980,6 +1024,10 @@ class Root(object):
         # Default reply
         oBack = {'status': 'error', 'html': 'kon niet lezen'}
 
+        # Security check
+        if is_bad(session_idx, oBack):
+            return json.dumps(oBack)
+
         # Retrieve the currently existing image
         img_name = get_picture_name(session_idx)
 
@@ -1015,6 +1063,10 @@ class Root(object):
         oBack = {'status': 'rejected', 'html': 'niet ingelogd'}
 
         try:
+            # Security check
+            if is_bad(inlog_name, oBack) or is_bad(inlog_pass, oBack):
+                return json.dumps(oBack)
+
             # Read the allowed login information
             lData = []
             debugMsg("Looking in user file: [{}]".format(self.user_file))
@@ -1052,6 +1104,10 @@ class Root(object):
         # Default reply
         oBack = {'status': 'ok', 'html': 'uitgelogd'}
 
+        # Security check
+        if is_bad(inlog_name, oBack):
+            return json.dumps(oBack)
+
         # Check parameter
         if inlog_name == "":
             oBack['status'] = "rejected"
@@ -1068,6 +1124,10 @@ class Root(object):
         oBack = {'status': 'ok', 'html': 'alles in orde'}
 
         try:
+            # Security check
+            if is_bad(id, oBack) or is_bad(session_idx, oBack):
+                return json.dumps(oBack)
+
             # Possibly convert string to integer
             if isinstance(id, str):
                 id = int(id)
@@ -1104,6 +1164,10 @@ class Root(object):
 
         imgpaths = []
         try:
+            # Security check
+            if is_bad(id) or is_bad(session_idx):
+                return "bad request"
+
             # Retrieve the currently existing image
             img_self = get_picture_name(session_idx)
             # Find out which file name this is
@@ -1122,6 +1186,10 @@ class Root(object):
 
         # Default reply
         oBack = {'status': 'error', 'html': 'kon niet lezen'}
+
+        # Security check
+        if is_bad(id, oBack) or is_bad(qalist, oBack) or is_bad(session_idx, oBack):
+            return json.dumps(oBack)
 
         # Show what has been found
         print("keizer id = {}".format(id), file=sys.stderr)
@@ -1183,6 +1251,10 @@ class Root(object):
 
 
         try:
+
+            # Security check
+            if is_bad(keizer_id, oBack) or is_bad(session_idx, oBack):
+                return json.dumps(oBack)
 
             #for item in self.imgpaths:
             #    debugMsg("item = [{}]".format(item))
